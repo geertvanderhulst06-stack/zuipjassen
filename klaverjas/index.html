@@ -87,8 +87,9 @@
     padding: 2px 0 4px;
   }
   .team .total { font-size: 44px; font-weight: 700; line-height: 1.1; margin-top: 6px; font-variant-numeric: tabular-nums; }
-  .lbl, label { font-size: 14px; color: var(--muted); }
-  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0 14px; }
+  label { font-size: 14px; color: var(--muted); }
+  .field label, .flabel { display: block; font-size: 15px; font-weight: 600; color: var(--text); }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 12px; }
   .seg label {
     display: block;
     text-align: center;
@@ -103,8 +104,8 @@
   .seg input:checked + span { font-weight: 700; }
   .seg label:has(input:checked) { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
   .seg label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .bids { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 6px 0 14px; }
-  .pits { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0 4px; }
+  .bids { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 0 14px; }
+  .pits { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 4px; }
   .bids button, .pits button { padding: 11px 6px; font-size: 17px; }
   .bids button[aria-pressed="true"], .pits button[aria-pressed="true"] {
     background: var(--accent);
@@ -117,7 +118,6 @@
     border-color: var(--danger);
     color: #fff;
   }
-  .hint { font-size: 12px; color: var(--muted); margin: 0 0 14px; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
   .field input[type=number] {
     width: 100%;
@@ -131,8 +131,22 @@
     color: var(--text);
   }
   .field input[type=number]:disabled { opacity: .6; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-  .chips button { padding: 5px 9px; font-size: 14px; }
+  .tally {
+    min-height: 46px;
+    margin-top: 4px;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--bg);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    line-height: 1.25;
+    word-break: break-all;
+  }
+  .chips { display: flex; gap: 6px; margin-top: 6px; }
+  .chips button { flex: 1; padding: 10px 6px; font-size: 16px; }
+  .chips button[data-add="0"] { flex: .7; font-size: 14px; color: var(--muted); }
   #preview { margin-top: 12px; font-size: 14px; color: var(--muted); min-height: 2.6em; }
   #preview strong { color: var(--text); }
   table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
@@ -184,20 +198,17 @@
   <section class="card" aria-labelledby="h-new">
     <h2 id="h-new">Nieuwe ronde</h2>
 
-    <div class="lbl" id="lbl-player">Wie speelde?</div>
-    <div class="seg" role="radiogroup" aria-labelledby="lbl-player">
+    <div class="seg" role="radiogroup" aria-label="Wie speelde?">
       <label><input type="radio" name="player" value="0"><span data-name="0"></span></label>
       <label><input type="radio" name="player" value="1"><span data-name="1"></span></label>
     </div>
 
-    <div class="lbl" id="lbl-type">Soort spel</div>
-    <div class="seg" role="radiogroup" aria-labelledby="lbl-type">
+    <div class="seg" role="radiogroup" aria-label="Soort spel">
       <label><input type="radio" name="gtype" value="troef" checked><span>Troef (162)</span></label>
       <label><input type="radio" name="gtype" value="sans"><span>Sans (130)</span></label>
     </div>
 
-    <div class="lbl" id="lbl-bid">Bod</div>
-    <div class="bids" id="bids" role="group" aria-labelledby="lbl-bid">
+    <div class="bids" id="bids" role="group" aria-label="Bod">
       <button type="button" data-bid="70" aria-pressed="false">70</button>
       <button type="button" data-bid="80" aria-pressed="false">80</button>
       <button type="button" data-bid="90" aria-pressed="false">90</button>
@@ -212,18 +223,18 @@
     <div class="grid2">
       <div class="field">
         <label for="pts0">Punten <span data-name="0"></span></label>
-        <input id="pts0" type="number" inputmode="numeric" min="0" max="162" step="1" placeholder="0–162">
+        <input id="pts0" type="number" inputmode="numeric" min="0" max="162" step="1">
       </div>
       <div class="field">
         <label for="pts1">Punten <span data-name="1"></span></label>
-        <input id="pts1" type="number" inputmode="numeric" min="0" max="162" step="1" placeholder="0–162">
+        <input id="pts1" type="number" inputmode="numeric" min="0" max="162" step="1">
       </div>
     </div>
 
     <div class="grid2">
       <div class="field">
-        <label for="roem0">Roem <span data-name="0"></span></label>
-        <input id="roem0" type="number" inputmode="numeric" min="0" step="10" value="0">
+        <div class="flabel">Roem <span data-name="0"></span></div>
+        <div class="tally" id="tally0" role="img" aria-label="Roem: geen"></div>
         <div class="chips" data-team="0">
           <button type="button" data-add="20">+20</button>
           <button type="button" data-add="50">+50</button>
@@ -231,8 +242,8 @@
         </div>
       </div>
       <div class="field">
-        <label for="roem1">Roem <span data-name="1"></span></label>
-        <input id="roem1" type="number" inputmode="numeric" min="0" step="10" value="0">
+        <div class="flabel">Roem <span data-name="1"></span></div>
+        <div class="tally" id="tally1" role="img" aria-label="Roem: geen"></div>
         <div class="chips" data-team="1">
           <button type="button" data-add="20">+20</button>
           <button type="button" data-add="50">+50</button>
@@ -241,12 +252,10 @@
       </div>
     </div>
 
-    <div class="lbl" id="lbl-res">Bijzonder (voor de spelende partij)</div>
-    <div class="pits" role="group" aria-labelledby="lbl-res">
+    <div class="pits" role="group" aria-label="Pit of nat voor de spelende partij">
       <button type="button" id="resPit" aria-pressed="false" disabled>Pit</button>
       <button type="button" id="resNat" aria-pressed="false" disabled>Nat</button>
     </div>
-    <p class="hint">Pit: de spelende partij haalde alle slagen. Nat: de spelende partij haalde het bod niet.</p>
 
     <div id="preview" aria-live="polite"></div>
     <button type="button" class="primary" id="save" disabled>Ronde opslaan</button>
@@ -380,7 +389,22 @@
   // ---- DOM -----------------------------------------------------------------
   function $(id) { return document.getElementById(id); }
   var pts = [$('pts0'), $('pts1')];
-  var roem = [$('roem0'), $('roem1')];
+  // Roem wordt geturfd: +20 = 'I', +50 = 'V'. Getoond als eerst alle V's, dan alle I's (bijv. VII = 90).
+  var tally = [{ n20: 0, n50: 0 }, { n20: 0, n50: 0 }];
+  function roemVal(i) { return tally[i].n20 * 20 + tally[i].n50 * 50; }
+  function tallyText(i) {
+    var s = '';
+    for (var k = 0; k < tally[i].n50; k++) s += 'V';
+    for (var j = 0; j < tally[i].n20; j++) s += 'I';
+    return s;
+  }
+  function renderTally() {
+    [0, 1].forEach(function (i) {
+      var el = $('tally' + i);
+      el.textContent = tallyText(i);
+      el.setAttribute('aria-label', 'Roem ' + teamName(i) + ': ' + (roemVal(i) || 'geen'));
+    });
+  }
   var bidBtns = Array.prototype.slice.call(document.querySelectorAll('#bids button'));
   var resBtn = { pit: $('resPit'), nat: $('resNat') };
   var saveBtn = $('save');
@@ -402,6 +426,7 @@
     for (var i = 0; i < els.length; i++) {
       els[i].textContent = teamName(Number(els[i].getAttribute('data-name')));
     }
+    renderTally();
   }
 
   function totals() {
@@ -554,8 +579,6 @@
     // Punten
     pts[0].max = String(total);
     pts[1].max = String(total);
-    pts[0].placeholder = '0–' + total;
-    pts[1].placeholder = '0–' + total;
     var locked = result !== null;
     pts[0].disabled = locked;
     pts[1].disabled = locked;
@@ -572,8 +595,8 @@
     var p = playerVal();
     var sans = isSans();
     var total = gameTotal(sans);
-    var ra = intVal(roem[0]) || 0;
-    var rb = intVal(roem[1]) || 0;
+    var ra = roemVal(0);
+    var rb = roemVal(1);
     var a = 0;
     var b = 0;
     if (p === null) return null;
@@ -605,12 +628,10 @@
       var total = gameTotal(isSans());
       var a = intVal(pts[0]);
       var b = intVal(pts[1]);
-      var msg;
-      if (playerVal() === null) msg = 'Kies eerst wie er speelde.';
-      else if (result === null && bid === null) msg = 'Kies het bod.';
-      else if (result === null && a !== null && b !== null && a + b !== total) msg = 'De punten moeten samen ' + total + ' zijn.';
-      else msg = 'Vul de punten in (samen ' + total + ').';
-      previewEl.textContent = msg;
+      // Alleen een foutmelding tonen; verder blijft dit vak leeg tot de ronde compleet is.
+      previewEl.textContent = (result === null && a !== null && b !== null && a + b !== total)
+        ? 'De punten moeten samen ' + total + ' zijn.'
+        : '';
       return;
     }
     var res = scoreRound(r);
@@ -654,11 +675,6 @@
   pts[0].addEventListener('input', linkPoints(0));
   pts[1].addEventListener('input', linkPoints(1));
 
-  [roem[0], roem[1]].forEach(function (el) {
-    el.addEventListener('input', updatePreview);
-    el.addEventListener('change', updatePreview);
-  });
-
   Array.prototype.forEach.call(document.querySelectorAll('input[name=player]'), function (el) {
     el.addEventListener('change', refresh);
   });
@@ -700,7 +716,10 @@
       var btn = e.target.closest('button');
       if (!btn) return;
       var add = Number(btn.getAttribute('data-add'));
-      roem[team].value = add === 0 ? '0' : String((intVal(roem[team]) || 0) + add);
+      if (add === 20) tally[team].n20++;
+      else if (add === 50) tally[team].n50++;
+      else { tally[team].n20 = 0; tally[team].n50 = 0; }
+      renderTally();
       updatePreview();
     });
   });
@@ -710,8 +729,7 @@
     bid = null;
     pts[0].value = '';
     pts[1].value = '';
-    roem[0].value = '0';
-    roem[1].value = '0';
+    tally = [{ n20: 0, n50: 0 }, { n20: 0, n50: 0 }];
     var checked = document.querySelector('input[name=player]:checked');
     if (checked) checked.checked = false;
     // soort spel (troef/sans) blijft staan: meestal spelen jullie dat vaker achter elkaar
