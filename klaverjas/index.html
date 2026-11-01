@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Klaverjas kladblok</title>
+<title>Gronings jassen kladblok</title>
 <style>
   :root {
     --bg: #f4f1ea;
@@ -103,8 +103,16 @@
   .seg input:checked + span { font-weight: 700; }
   .seg label:has(input:checked) { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
   .seg label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .pits { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0 4px; }
+  .pits button { padding: 10px 6px; font-size: 15px; line-height: 1.25; }
+  .pits button[aria-pressed="true"] {
+    background: var(--accent);
+    color: var(--accent-text);
+    border-color: var(--accent);
+    font-weight: 700;
+  }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
-  .field input[type=number], select {
+  .field input[type=number] {
     width: 100%;
     font: inherit;
     font-size: 18px;
@@ -115,6 +123,7 @@
     background: var(--bg);
     color: var(--text);
   }
+  .field input[type=number]:disabled { opacity: .6; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
   .chips button { padding: 5px 9px; font-size: 14px; }
   #preview { margin-top: 12px; font-size: 14px; color: var(--muted); min-height: 2.6em; }
@@ -122,7 +131,7 @@
   table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
   th, td { padding: 8px 4px; text-align: center; border-bottom: 1px solid var(--line); }
   th { font-size: 13px; color: var(--muted); font-weight: 600; }
-  td.n, th.n { text-align: left; color: var(--muted); width: 2.2em; }
+  td.n, th.n { text-align: left; color: var(--muted); width: 3.2em; }
   td small { display: block; font-size: 12px; color: var(--muted); }
   td small.bad { color: var(--nat); font-weight: 600; }
   td.x { width: 2.4em; }
@@ -150,7 +159,7 @@
 <body>
 <main>
   <header>
-    <h1>Klaverjas</h1>
+    <h1>Gronings jassen</h1>
     <button type="button" id="newGame">Nieuw spel</button>
   </header>
 
@@ -172,6 +181,12 @@
     <div class="seg" role="radiogroup" aria-labelledby="lbl-player">
       <label><input type="radio" name="player" value="0"><span data-name="0"></span></label>
       <label><input type="radio" name="player" value="1"><span data-name="1"></span></label>
+    </div>
+
+    <div class="lbl" id="lbl-type">Soort spel</div>
+    <div class="seg" role="radiogroup" aria-labelledby="lbl-type">
+      <label><input type="radio" name="gtype" value="troef" checked><span>Troef (162)</span></label>
+      <label><input type="radio" name="gtype" value="sans"><span>Sans (130)</span></label>
     </div>
 
     <div class="grid2">
@@ -208,9 +223,10 @@
       </div>
     </div>
 
-    <div class="field">
-      <label for="special">Bijzonder</label>
-      <select id="special"></select>
+    <div class="lbl" id="lbl-pit">Pit (alle slagen gehaald)</div>
+    <div class="pits" role="group" aria-labelledby="lbl-pit">
+      <button type="button" id="pit0" aria-pressed="false"></button>
+      <button type="button" id="pit1" aria-pressed="false"></button>
     </div>
 
     <div id="preview" aria-live="polite"></div>
@@ -218,7 +234,7 @@
   </section>
 
   <section class="card" aria-labelledby="h-hist">
-    <h2 id="h-hist">Rondes</h2>
+    <h2 id="h-hist">Rondes (op papier)</h2>
     <table>
       <thead>
         <tr><th class="n">#</th><th data-name="0"></th><th data-name="1"></th><th></th></tr>
@@ -231,9 +247,10 @@
       <button type="button" id="undo" disabled>Laatste ronde ongedaan maken</button>
     </div>
     <p class="note">
-      Regels: 162 punten per ronde (stok) plus roem. Pit = +100 roem. De spelende partij moet meer
-      punten (stok + roem) halen dan de tegenpartij. Anders is die nat: 0 punten, en de tegenpartij
-      krijgt alle punten en alle roem. Bij gelijkstand is de spelende partij nat.
+      Regels: troef = 162 punten per ronde, sans = 130, plus roem. Pit = +100 roem. Op papier tel je in
+      tientallen en een rest van 7 of meer rond je naar boven af (16 &rarr; 1, 27 &rarr; 3, 160 &rarr; 16).
+      De spelende partij moet meer punten (stok + roem) halen dan de tegenpartij. Anders is die nat: 0 punten,
+      en de tegenpartij krijgt alle punten en alle roem. Bij gelijkstand is de spelende partij nat.
     </p>
   </section>
 </main>
@@ -250,43 +267,48 @@
 (function () {
   'use strict';
 
-  var TOTAL = 162;
+  var TOTAL_TROEF = 162;
+  var TOTAL_SANS = 130;
   var PIT_BONUS = 100;
+  var ROUND_UP_FROM = 7; // rest van 7 of meer: naar boven afronden
   var KEY = 'klaverjas-kladblok-v1';
 
   // ---- Rekenen (los van de UI) -------------------------------------------
-  // r = { player: 0|1, pts: [a, b], roem: [a, b], special: 'none'|'pit0'|'pit1'|'verzaakt0'|'verzaakt1' }
+  // Afronden naar tientallen op papier: 160 -> 16, 16 -> 1, 27 -> 3.
+  function paper(x) {
+    var tens = Math.floor(x / 10);
+    return (x % 10) >= ROUND_UP_FROM ? tens + 1 : tens;
+  }
+
+  function gameTotal(sans) { return sans ? TOTAL_SANS : TOTAL_TROEF; }
+
+  // r = { player: 0|1, sans: bool, pts: [a, b], roem: [a, b], special: 'none'|'pit0'|'pit1' }
+  // pit0 = team 0 haalde alle slagen. Oudere opgeslagen rondes met een andere
+  // waarde (bijv. 'verzaakt0') tellen als gewone ronde.
   function scoreRound(r) {
+    var total = gameTotal(!!r.sans);
     var pts = r.pts.slice();
     var roem = r.roem.slice();
     var label = '';
-    var s = r.special || 'none';
-    var team, other;
 
-    if (s === 'pit0' || s === 'pit1') {
-      team = Number(s.slice(3));
-      pts[team] = TOTAL;
-      pts[1 - team] = 0;
-      roem[team] += PIT_BONUS;
+    if (r.special === 'pit0' || r.special === 'pit1') {
+      var w = Number(r.special.slice(3));
+      pts[w] = total;
+      pts[1 - w] = 0;
+      roem[w] += PIT_BONUS;
       label = 'pit';
     }
 
-    if (s === 'verzaakt0' || s === 'verzaakt1') {
-      team = Number(s.slice(8));
-      other = 1 - team;
-      var res = [0, 0];
-      res[other] = TOTAL + roem[0] + roem[1];
-      return { score: res, label: 'verzaakt' };
-    }
-
-    var tot = [pts[0] + roem[0], pts[1] + roem[1]];
+    var raw = [pts[0] + roem[0], pts[1] + roem[1]];
     var p = r.player;
-    if (tot[p] > tot[1 - p]) {
-      return { score: tot, label: label };
+    var nat = null;
+    if (!(raw[p] > raw[1 - p])) {
+      nat = p;
+      raw = [0, 0];
+      raw[1 - p] = total + roem[0] + roem[1];
+      label = 'nat';
     }
-    var nat = [0, 0];
-    nat[1 - p] = TOTAL + roem[0] + roem[1];
-    return { score: nat, label: 'nat', nat: p };
+    return { raw: raw, score: [paper(raw[0]), paper(raw[1])], label: label, nat: nat };
   }
 
   // ---- Opslag --------------------------------------------------------------
@@ -304,39 +326,31 @@
   }
 
   var state = load() || { names: ['Wij', 'Zij'], rounds: [] };
+  var pit = null; // null | 0 | 1: welk team alle slagen haalde
 
   // ---- DOM -----------------------------------------------------------------
   function $(id) { return document.getElementById(id); }
   var pts = [$('pts0'), $('pts1')];
   var roem = [$('roem0'), $('roem1')];
-  var specialEl = $('special');
+  var pitBtn = [$('pit0'), $('pit1')];
   var saveBtn = $('save');
   var undoBtn = $('undo');
   var previewEl = $('preview');
 
   function teamName(i) { return state.names[i] || (i === 0 ? 'Team 1' : 'Team 2'); }
+  function isSans() {
+    var c = document.querySelector('input[name=gtype]:checked');
+    return !!c && c.value === 'sans';
+  }
 
   function renderNames() {
     var els = document.querySelectorAll('[data-name]');
     for (var i = 0; i < els.length; i++) {
       els[i].textContent = teamName(Number(els[i].getAttribute('data-name')));
     }
-    var keep = specialEl.value || 'none';
-    specialEl.innerHTML = '';
-    var opts = [
-      ['none', 'Geen'],
-      ['pit0', 'Pit: ' + teamName(0)],
-      ['pit1', 'Pit: ' + teamName(1)],
-      ['verzaakt0', 'Verzaakt: ' + teamName(0)],
-      ['verzaakt1', 'Verzaakt: ' + teamName(1)]
-    ];
-    opts.forEach(function (o) {
-      var op = document.createElement('option');
-      op.value = o[0];
-      op.textContent = o[1];
-      specialEl.appendChild(op);
-    });
-    specialEl.value = keep;
+    // pit0 = team 0 haalde alle slagen, dus team 1 is "pit gespeeld"
+    pitBtn[0].textContent = teamName(1) + ' zijn pit gespeeld';
+    pitBtn[1].textContent = teamName(0) + ' zijn pit gespeeld';
   }
 
   function totals() {
@@ -359,21 +373,24 @@
       var n = document.createElement('td');
       n.className = 'n';
       n.textContent = String(idx + 1);
+      if (r.sans) {
+        var tag = document.createElement('small');
+        tag.textContent = 'sans';
+        n.appendChild(tag);
+      }
       tr.appendChild(n);
 
       [0, 1].forEach(function (i) {
         var td = document.createElement('td');
         td.textContent = String(res.score[i]);
-        if (res.label) {
-          var sm = document.createElement('small');
-          var isBad = res.label === 'nat' && res.nat === i;
-          var isFoul = res.label === 'verzaakt' && res.score[i] === 0;
-          if (res.label === 'pit' && res.score[i] > 0) sm.textContent = 'pit';
-          else if (isBad) sm.textContent = 'nat';
-          else if (isFoul) sm.textContent = 'verzaakt';
-          if (isBad || isFoul) sm.className = 'bad';
-          if (sm.textContent) td.appendChild(sm);
-        }
+        var sm = document.createElement('small');
+        var isNat = res.label === 'nat' && res.nat === i;
+        var text = String(res.raw[i]);
+        if (isNat) text += ' · nat';
+        else if (res.label === 'pit' && res.raw[i] > 0) text += ' · pit';
+        sm.textContent = text;
+        if (isNat) sm.className = 'bad';
+        td.appendChild(sm);
         tr.appendChild(td);
       });
 
@@ -409,6 +426,7 @@
     $('name1').value = state.names[1];
     renderNames();
     renderRounds();
+    syncPoints();
     updatePreview();
   }
 
@@ -442,20 +460,40 @@
     return isNaN(v) ? null : v;
   }
 
+  // Zet max/placeholder voor troef of sans en vul de punten bij pit.
+  function syncPoints() {
+    var total = gameTotal(isSans());
+    pts[0].max = String(total);
+    pts[1].max = String(total);
+    pts[0].placeholder = '0–' + total;
+    pts[1].placeholder = '0–' + total;
+    pitBtn[0].setAttribute('aria-pressed', pit === 0 ? 'true' : 'false');
+    pitBtn[1].setAttribute('aria-pressed', pit === 1 ? 'true' : 'false');
+    var locked = pit !== null;
+    pts[0].disabled = locked;
+    pts[1].disabled = locked;
+    if (locked) {
+      pts[pit].value = String(total);
+      pts[1 - pit].value = '0';
+    }
+  }
+
   function currentInput() {
     var checked = document.querySelector('input[name=player]:checked');
+    var total = gameTotal(isSans());
     var a = intVal(pts[0]);
     var b = intVal(pts[1]);
     var ra = intVal(roem[0]) || 0;
     var rb = intVal(roem[1]) || 0;
     if (!checked || a === null || b === null) return null;
-    if (a < 0 || b < 0 || a > TOTAL || b > TOTAL || a + b !== TOTAL) return null;
+    if (a < 0 || b < 0 || a > total || b > total || a + b !== total) return null;
     if (ra < 0 || rb < 0) return null;
     return {
       player: Number(checked.value),
+      sans: isSans(),
       pts: [a, b],
       roem: [ra, rb],
-      special: specialEl.value
+      special: pit === null ? 'none' : 'pit' + pit
     };
   }
 
@@ -463,10 +501,11 @@
     var r = currentInput();
     saveBtn.disabled = !r;
     if (!r) {
+      var total = gameTotal(isSans());
       var a = intVal(pts[0]);
       var b = intVal(pts[1]);
-      var msg = 'Kies wie speelde en vul de punten in (samen 162).';
-      if (a !== null && b !== null && a + b !== TOTAL) msg = 'De punten moeten samen 162 zijn.';
+      var msg = 'Kies wie speelde en vul de punten in (samen ' + total + ').';
+      if (a !== null && b !== null && a + b !== total) msg = 'De punten moeten samen ' + total + ' zijn.';
       previewEl.textContent = msg;
       return;
     }
@@ -477,36 +516,59 @@
     s0.textContent = String(res.score[0]);
     var s1 = document.createElement('strong');
     s1.textContent = String(res.score[1]);
-    line.appendChild(document.createTextNode(teamName(0) + ' '));
+    line.appendChild(document.createTextNode('Op papier: ' + teamName(0) + ' '));
     line.appendChild(s0);
     line.appendChild(document.createTextNode('  –  ' + teamName(1) + ' '));
     line.appendChild(s1);
     previewEl.appendChild(line);
-    if (res.label === 'nat') {
-      var w = document.createElement('div');
-      w.textContent = teamName(res.nat) + ' is nat.';
-      previewEl.appendChild(w);
-    }
+    var detail = document.createElement('div');
+    detail.textContent = '(' + res.raw[0] + ' – ' + res.raw[1] + ')' +
+      (res.label === 'nat' ? ' ' + teamName(res.nat) + ' is nat.' : '');
+    previewEl.appendChild(detail);
   }
 
-  // Punten van het ene team vullen automatisch het andere in (samen 162).
+  // Punten van het ene team vullen automatisch het andere in.
   function linkPoints(i) {
     return function () {
+      var total = gameTotal(isSans());
       var v = intVal(pts[i]);
       if (v === null) { pts[1 - i].value = ''; }
-      else if (v >= 0 && v <= TOTAL) { pts[1 - i].value = String(TOTAL - v); }
+      else if (v >= 0 && v <= total) { pts[1 - i].value = String(total - v); }
       updatePreview();
     };
   }
   pts[0].addEventListener('input', linkPoints(0));
   pts[1].addEventListener('input', linkPoints(1));
 
-  [roem[0], roem[1], specialEl].forEach(function (el) {
+  [roem[0], roem[1]].forEach(function (el) {
     el.addEventListener('input', updatePreview);
     el.addEventListener('change', updatePreview);
   });
   Array.prototype.forEach.call(document.querySelectorAll('input[name=player]'), function (el) {
     el.addEventListener('change', updatePreview);
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('input[name=gtype]'), function (el) {
+    el.addEventListener('change', function () {
+      // andere puntentotaal: invoer wissen om een ongeldige som te voorkomen
+      if (pit === null) { pts[0].value = ''; pts[1].value = ''; }
+      syncPoints();
+      updatePreview();
+    });
+  });
+
+  // Pit: opnieuw tikken zet het weer uit.
+  [0, 1].forEach(function (i) {
+    pitBtn[i].addEventListener('click', function () {
+      if (pit === i) {
+        pit = null;
+        pts[0].value = '';
+        pts[1].value = '';
+      } else {
+        pit = i;
+      }
+      syncPoints();
+      updatePreview();
+    });
   });
 
   Array.prototype.forEach.call(document.querySelectorAll('.chips'), function (box) {
@@ -520,19 +582,23 @@
     });
   });
 
+  function clearForm() {
+    pit = null;
+    pts[0].value = '';
+    pts[1].value = '';
+    roem[0].value = '0';
+    roem[1].value = '0';
+    var checked = document.querySelector('input[name=player]:checked');
+    if (checked) checked.checked = false;
+    // soort spel (troef/sans) blijft staan: meestal spelen jullie dat vaker achter elkaar
+  }
+
   saveBtn.addEventListener('click', function () {
     var r = currentInput();
     if (!r) return;
     state.rounds.push(r);
     save();
-    // formulier leegmaken
-    pts[0].value = '';
-    pts[1].value = '';
-    roem[0].value = '0';
-    roem[1].value = '0';
-    specialEl.value = 'none';
-    var checked = document.querySelector('input[name=player]:checked');
-    if (checked) checked.checked = false;
+    clearForm();
     render();
   });
 
@@ -546,6 +612,7 @@
   function resetGame() {
     state.rounds = [];
     save();
+    clearForm();
     render();
   }
   $('newGame').addEventListener('click', function () {
@@ -563,7 +630,7 @@
   });
 
   // Voor testen in de console / automatische tests.
-  window.__klaverjas = { scoreRound: scoreRound };
+  window.__klaverjas = { scoreRound: scoreRound, paper: paper };
 
   render();
 })();
