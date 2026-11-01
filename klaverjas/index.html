@@ -208,7 +208,8 @@
   th { font-size: 13px; color: var(--muted); font-weight: 600; }
   td.n, th.n { text-align: left; color: var(--muted); width: 3.6em; }
   td small { display: block; font-size: 12px; color: var(--muted); }
-  td small.bad { color: var(--nat); font-weight: 600; }
+  td small .bad { color: var(--nat); font-weight: 600; }
+  td small .tl { letter-spacing: .12em; font-weight: 700; }
   td.x { width: 2.4em; }
   td.x button { border: none; background: transparent; color: var(--muted); padding: 2px 6px; }
   tfoot td { font-weight: 700; font-size: 18px; border-bottom: none; padding-top: 12px; }
@@ -402,6 +403,26 @@
 
   function gameTotal(sans) { return sans ? TOTAL_SANS : TOTAL_TROEF; }
 
+  // Roem als turfjes: +20 = 'I', +50 = 'V', eerst alle V's, dan alle I's (50 + 20 + 20 = VII).
+  function tallyString(n20, n50) {
+    var s = '';
+    for (var k = 0; k < n50; k++) s += 'V';
+    for (var j = 0; j < n20; j++) s += 'I';
+    return s;
+  }
+  // Voor rondes zonder opgeslagen turfjes: zoveel mogelijk V's, de rest I's (90 = VII, 100 = VV).
+  function tallyFromTotal(v) {
+    if (!v) return '';
+    for (var b = Math.floor(v / 50); b >= 0; b--) {
+      if ((v - 50 * b) % 20 === 0) return tallyString((v - 50 * b) / 20, b);
+    }
+    return String(v);
+  }
+  function roundTally(r, i) {
+    if (r.roemT && r.roemT[i]) return tallyString(r.roemT[i][0], r.roemT[i][1]);
+    return tallyFromTotal(r.roem[i]);
+  }
+
   // r = {
   //   player: 0|1, sans: bool,
   //   bid: getal | 'pit' | null,
@@ -559,12 +580,7 @@
   // Roem wordt geturfd: +20 = 'I', +50 = 'V'. Getoond als eerst alle V's, dan alle I's (bijv. VII = 90).
   var tally = [{ n20: 0, n50: 0 }, { n20: 0, n50: 0 }];
   function roemVal(i) { return tally[i].n20 * 20 + tally[i].n50 * 50; }
-  function tallyText(i) {
-    var s = '';
-    for (var k = 0; k < tally[i].n50; k++) s += 'V';
-    for (var j = 0; j < tally[i].n20; j++) s += 'I';
-    return s;
-  }
+  function tallyText(i) { return tallyString(tally[i].n20, tally[i].n50); }
   function renderTally() {
     [0, 1].forEach(function (i) {
       var el = $('tally' + i);
@@ -634,13 +650,25 @@
       [0, 1].forEach(function (i) {
         var td = document.createElement('td');
         td.textContent = String(res.score[i]);
+        // Onder de papieren score: de behaalde roem als turfjes (geen losse punten meer),
+        // gevolgd door 'nat' of 'pit' als dat voor dit team geldt.
         var sm = document.createElement('small');
+        var tl = roundTally(r, i);
         var isNat = res.label === 'nat' && res.nat === i;
-        var text = String(res.raw[i]);
-        if (isNat) text += ' · nat';
-        else if (res.label === 'pit' && res.pitTeam === i) text += ' · pit';
-        sm.textContent = text;
-        if (isNat) sm.className = 'bad';
+        var isPit = res.label === 'pit' && res.pitTeam === i;
+        if (tl) {
+          var tspan = document.createElement('span');
+          tspan.className = 'tl';
+          tspan.textContent = tl;
+          sm.appendChild(tspan);
+        }
+        if (isNat || isPit) {
+          var lspan = document.createElement('span');
+          lspan.textContent = (tl ? ' · ' : '') + (isNat ? 'nat' : 'pit');
+          if (isNat) lspan.className = 'bad';
+          sm.appendChild(lspan);
+        }
+        if (!sm.firstChild) sm.textContent = ' '; // zelfde hoogte voor alle rijen
         td.appendChild(sm);
         tr.appendChild(td);
       });
@@ -802,6 +830,7 @@
       bid: bid,
       pts: [a, b],
       roem: [ra, rb],
+      roemT: [[tally[0].n20, tally[0].n50], [tally[1].n20, tally[1].n50]],
       special: result === null ? 'none' : result
     };
   }
@@ -972,7 +1001,7 @@
   });
 
   // Voor testen in de console / automatische tests.
-  window.__klaverjas = { scoreRound: scoreRound, paper: paper, roundEvents: roundEvents, eventMessages: eventMessages, drinkMl: drinkMl, litersText: litersText };
+  window.__klaverjas = { scoreRound: scoreRound, paper: paper, roundEvents: roundEvents, eventMessages: eventMessages, drinkMl: drinkMl, litersText: litersText, tallyFromTotal: tallyFromTotal, tallyString: tallyString };
 
   render();
 })();
