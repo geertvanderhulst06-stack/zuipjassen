@@ -15,7 +15,7 @@
     --aqua-text: #14181a;
     --purple: #6472A7;
     --purple-text: #ffffff;
-    --split: linear-gradient(to bottom right, #A8E2D7 50%, #6472A7 50%);
+    --split: linear-gradient(to right, #A8E2D7 50%, #6472A7 50%);
     /* Basismodel: groen. De lustrum-editie (body.lustrum) overschrijft de variabelen hieronder. */
     --accent: #1f6f43;
     --accent-text: #ffffff;
@@ -47,6 +47,7 @@
   }
   /* Lustrum editie: links aquamarijn, rechts paars, tweekleurige knoppen in het midden */
   body.lustrum {
+    background: linear-gradient(to right, var(--aqua) 50%, var(--purple) 50%);
     --sel-l-bg: var(--aqua);
     --sel-l-fg: var(--aqua-text);
     --sel-m-bg: var(--split);
@@ -57,6 +58,7 @@
     --save-fg: var(--aqua-text);
     --focus: var(--purple);
   }
+  body.lustrum header h1 { color: var(--aqua-text); } /* staat op de aquamarijn helft */
   [hidden] { display: none !important; }
   * { box-sizing: border-box; }
   body {
@@ -79,7 +81,7 @@
     padding: 8px 12px;
   }
   button:disabled { opacity: .4; cursor: not-allowed; }
-  /* Opslaan-knop: basis groen; lustrum: aquamarijn links/boven, paars rechts/onder (lijn van linksonder naar rechtsboven) */
+  /* Opslaan-knop: basis groen; lustrum: linkerhelft aquamarijn, rechterhelft paars */
   button.primary {
     background: var(--save-bg);
     color: var(--save-fg);
@@ -203,6 +205,7 @@
   .tools { display: flex; gap: 8px; margin-top: 12px; }
   .tools button { flex: 1; font-size: 14px; }
   .note { font-size: 12px; color: var(--muted); margin-top: 12px; }
+  #alertMsg p { margin: 0 0 10px; font-size: 19px; font-weight: 700; line-height: 1.3; }
   .check { display: flex; align-items: center; gap: 10px; padding: 8px 0; font-size: 16px; color: var(--text); cursor: pointer; }
   .check input { width: 20px; height: 20px; margin: 0; accent-color: var(--focus); }
   .subopts { margin-left: 30px; border-left: 2px solid var(--line); padding-left: 12px; }
@@ -345,6 +348,11 @@
   </div>
 </dialog>
 
+<dialog id="alertDlg" aria-labelledby="alertMsg">
+  <div id="alertMsg"></div>
+  <button type="button" class="primary" id="alertOk">OK</button>
+</dialog>
+
 <script>
 (function () {
   'use strict';
@@ -417,6 +425,55 @@
       label = 'nat';
     }
     return { raw: raw, score: [paper(raw[0]), paper(raw[1])], label: label, nat: nat, made: made, pitTeam: pitTeam };
+  }
+
+  // ---- Zuipjassen: wat moet er na de laatste ronde getrokken worden? -------------
+  // Geeft per team het aantal bakken en liters voor de LAATSTE ronde in `rounds`.
+  // Alles is alleen actief als de zuipjassen-editie aanstaat, en elke soort heeft een eigen tickbox.
+  // Meldingen voor hetzelfde team uit dezelfde ronde stapelen (bijv. natbak + takbak = 2 bakken).
+  var TAK_LENGTH = 4; // 1 tak = 4 handjes (rondes)
+  function roundEvents(rounds, opts) {
+    var ev = [{ bak: 0, liter: 0 }, { bak: 0, liter: 0 }];
+    if (!opts || !opts.zuipjassen || !rounds.length) return ev;
+    var last = rounds[rounds.length - 1];
+    var res = scoreRound(last);
+
+    // Natbak: het team dat nat ging trekt een bak.
+    if (opts.natbak && res.nat !== null) ev[res.nat].bak++;
+
+    // Pitliter: de spelende partij haalde alle slagen (pit), dus de tegenpartij trekt een liter.
+    if (opts.pitliter && last.special === 'pit') ev[1 - last.player].liter++;
+
+    // Takbak: na elke 4 rondes (1 tak, los van andere takken) trekt het team met de minste punten
+    // op papier een bak. Bij gelijk aantal punten trekken beide teams een bak.
+    if (opts.takbak && rounds.length % TAK_LENGTH === 0) {
+      var sum = [0, 0];
+      rounds.slice(-TAK_LENGTH).forEach(function (r) {
+        var s = scoreRound(r).score;
+        sum[0] += s[0];
+        sum[1] += s[1];
+      });
+      if (sum[0] <= sum[1]) ev[0].bak++;
+      if (sum[1] <= sum[0]) ev[1].bak++;
+    }
+    return ev;
+  }
+
+  function drinkText(e) {
+    var parts = [];
+    if (e.liter > 0) parts.push(e.liter === 1 ? 'een liter' : e.liter + ' liter');
+    if (e.bak > 0) parts.push(e.bak === 1 ? 'een bak' : e.bak + ' bakken');
+    return parts.join(' en ');
+  }
+
+  // Regels voor de melding, bijv. "Team Wij moet een liter en een bak trekken".
+  function eventMessages(ev) {
+    var lines = [];
+    [0, 1].forEach(function (i) {
+      var t = drinkText(ev[i]);
+      if (t) lines.push('Team ' + teamName(i) + ' moet ' + t + ' trekken');
+    });
+    return lines;
   }
 
   // ---- Opslag --------------------------------------------------------------
@@ -593,6 +650,22 @@
     dlg.close();
   });
   dlg.addEventListener('cancel', function () { pendingYes = null; });
+
+  // ---- Melding (pop-up met OK) voor de zuipjassen-editie ------------------
+  var alertDlg = $('alertDlg');
+  function showAlerts(lines) {
+    if (!lines.length) return;
+    if (typeof alertDlg.showModal !== 'function') { window.alert(lines.join('\n')); return; }
+    var box = $('alertMsg');
+    box.innerHTML = '';
+    lines.forEach(function (t) {
+      var p = document.createElement('p');
+      p.textContent = t;
+      box.appendChild(p);
+    });
+    alertDlg.showModal();
+  }
+  $('alertOk').addEventListener('click', function () { alertDlg.close(); });
 
   // ---- Formulier -----------------------------------------------------------
   function intVal(el) {
@@ -795,8 +868,10 @@
     if (!r) return;
     state.rounds.push(r);
     save();
+    var lines = eventMessages(roundEvents(state.rounds, state.opts));
     clearForm();
     render();
+    showAlerts(lines);
   });
 
   undoBtn.addEventListener('click', function () {
@@ -848,7 +923,7 @@
   });
 
   // Voor testen in de console / automatische tests.
-  window.__klaverjas = { scoreRound: scoreRound, paper: paper };
+  window.__klaverjas = { scoreRound: scoreRound, paper: paper, roundEvents: roundEvents, eventMessages: eventMessages };
 
   render();
 })();
