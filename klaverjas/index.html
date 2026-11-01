@@ -50,7 +50,7 @@
     border-radius: 8px;
     padding: 8px 12px;
   }
-  button:disabled { opacity: .45; cursor: not-allowed; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
   button.primary {
     background: var(--accent);
     color: var(--accent-text);
@@ -103,14 +103,21 @@
   .seg input:checked + span { font-weight: 700; }
   .seg label:has(input:checked) { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
   .seg label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .bids { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 6px 0 14px; }
   .pits { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0 4px; }
-  .pits button { padding: 10px 6px; font-size: 15px; line-height: 1.25; }
-  .pits button[aria-pressed="true"] {
+  .bids button, .pits button { padding: 11px 6px; font-size: 17px; }
+  .bids button[aria-pressed="true"], .pits button[aria-pressed="true"] {
     background: var(--accent);
     color: var(--accent-text);
     border-color: var(--accent);
     font-weight: 700;
   }
+  .pits button#resNat[aria-pressed="true"] {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #fff;
+  }
+  .hint { font-size: 12px; color: var(--muted); margin: 0 0 14px; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
   .field input[type=number] {
     width: 100%;
@@ -124,7 +131,6 @@
     color: var(--text);
   }
   .field input[type=number]:disabled { opacity: .6; }
-  .bidfield { margin-bottom: 12px; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
   .chips button { padding: 5px 9px; font-size: 14px; }
   #preview { margin-top: 12px; font-size: 14px; color: var(--muted); min-height: 2.6em; }
@@ -132,7 +138,7 @@
   table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
   th, td { padding: 8px 4px; text-align: center; border-bottom: 1px solid var(--line); }
   th { font-size: 13px; color: var(--muted); font-weight: 600; }
-  td.n, th.n { text-align: left; color: var(--muted); width: 3.2em; }
+  td.n, th.n { text-align: left; color: var(--muted); width: 3.6em; }
   td small { display: block; font-size: 12px; color: var(--muted); }
   td small.bad { color: var(--nat); font-weight: 600; }
   td.x { width: 2.4em; }
@@ -190,16 +196,17 @@
       <label><input type="radio" name="gtype" value="sans"><span>Sans (130)</span></label>
     </div>
 
-    <div class="field bidfield">
-      <label for="bid">Bod (stokpunten, zonder roem)</label>
-      <input id="bid" type="number" inputmode="numeric" min="1" max="162" step="1" placeholder="bijv. 80">
-      <div class="chips" id="bidChips">
-        <button type="button" data-bid="80">80</button>
-        <button type="button" data-bid="90">90</button>
-        <button type="button" data-bid="100">100</button>
-        <button type="button" data-bid="110">110</button>
-        <button type="button" data-bid="120">120</button>
-      </div>
+    <div class="lbl" id="lbl-bid">Bod</div>
+    <div class="bids" id="bids" role="group" aria-labelledby="lbl-bid">
+      <button type="button" data-bid="70" aria-pressed="false">70</button>
+      <button type="button" data-bid="80" aria-pressed="false">80</button>
+      <button type="button" data-bid="90" aria-pressed="false">90</button>
+      <button type="button" data-bid="100" aria-pressed="false">100</button>
+      <button type="button" data-bid="110" aria-pressed="false">110</button>
+      <button type="button" data-bid="120" aria-pressed="false">120</button>
+      <button type="button" data-bid="130" aria-pressed="false">130</button>
+      <button type="button" data-bid="140" aria-pressed="false">140</button>
+      <button type="button" data-bid="pit" aria-pressed="false">Pit</button>
     </div>
 
     <div class="grid2">
@@ -220,7 +227,6 @@
         <div class="chips" data-team="0">
           <button type="button" data-add="20">+20</button>
           <button type="button" data-add="50">+50</button>
-          <button type="button" data-add="100">+100</button>
           <button type="button" data-add="0">wis</button>
         </div>
       </div>
@@ -230,17 +236,17 @@
         <div class="chips" data-team="1">
           <button type="button" data-add="20">+20</button>
           <button type="button" data-add="50">+50</button>
-          <button type="button" data-add="100">+100</button>
           <button type="button" data-add="0">wis</button>
         </div>
       </div>
     </div>
 
-    <div class="lbl" id="lbl-pit">Pit (alle slagen gehaald)</div>
-    <div class="pits" role="group" aria-labelledby="lbl-pit">
-      <button type="button" id="pit0" aria-pressed="false"></button>
-      <button type="button" id="pit1" aria-pressed="false"></button>
+    <div class="lbl" id="lbl-res">Bijzonder (voor de spelende partij)</div>
+    <div class="pits" role="group" aria-labelledby="lbl-res">
+      <button type="button" id="resPit" aria-pressed="false" disabled>Pit</button>
+      <button type="button" id="resNat" aria-pressed="false" disabled>Nat</button>
     </div>
+    <p class="hint">Pit: de spelende partij haalde alle slagen. Nat: de spelende partij haalde het bod niet.</p>
 
     <div id="preview" aria-live="polite"></div>
     <button type="button" class="primary" id="save" disabled>Ronde opslaan</button>
@@ -260,12 +266,12 @@
       <button type="button" id="undo" disabled>Laatste ronde ongedaan maken</button>
     </div>
     <p class="note">
-      Regels: troef = 162 punten per ronde, sans = 130, plus roem. Pit = +100 roem. Op papier tel je in
-      tientallen en een rest van 7 of meer rond je naar boven af (16 &rarr; 1, 27 &rarr; 3, 160 &rarr; 16).
-      De spelende partij moet minstens het bod aan stokpunten halen. Roem telt niet mee voor het halen van
-      het bod, wel voor de score. Exact het bod halen is gehaald (bod 80, 80 punten: 8 &ndash; 8 op papier).
-      Haalt de spelende partij het bod niet, dan is die nat: 0 punten, en de tegenpartij krijgt alle punten
-      en alle roem.
+      Regels: troef = 162 punten per ronde, sans = 130, plus roem. Op papier tel je in tientallen en een rest
+      van 7 of meer rond je naar boven af (16 &rarr; 1, 27 &rarr; 3, 160 &rarr; 16). Bod 70 kan alleen bij sans.
+      De spelende partij moet minstens het bod aan stokpunten halen. Roem telt niet mee voor het halen van het
+      bod, wel voor de score. Exact het bod halen is gehaald (bod 80, 80 punten: 8 &ndash; 8 op papier).
+      Bod pit is alleen gehaald als de spelende partij alle slagen haalt. Pit = +100 roem. Haalt de spelende
+      partij het bod niet, dan is die nat: 0 punten, en de tegenpartij krijgt alle punten en alle roem.
     </p>
   </section>
 </main>
@@ -297,31 +303,51 @@
 
   function gameTotal(sans) { return sans ? TOTAL_SANS : TOTAL_TROEF; }
 
-  // r = { player: 0|1, sans: bool, bid: getal|null, pts: [a, b], roem: [a, b], special: 'none'|'pit0'|'pit1' }
-  // pit0 = team 0 haalde alle slagen. Oudere opgeslagen rondes met een andere
-  // waarde (bijv. 'verzaakt0') tellen als gewone ronde.
-  // Het bod is gehaald als de spelende partij minstens het bod aan stokpunten
-  // haalt. Roem telt NIET mee voor het halen van het bod, wel voor de score.
+  // r = {
+  //   player: 0|1, sans: bool,
+  //   bid: getal | 'pit' | null,
+  //   pts: [a, b], roem: [a, b],
+  //   special: 'none' | 'pit' | 'nat'   (voor de spelende partij)
+  // }
+  // Oudere opgeslagen rondes kunnen 'pit0'/'pit1' (absoluut team) hebben; die blijven werken.
+  // Andere onbekende waarden (bijv. 'verzaakt0') tellen als gewone ronde.
+  //
+  // Het bod is gehaald als de spelende partij minstens het bod aan stokpunten haalt.
+  // Roem telt NIET mee voor het halen van het bod, wel voor de score.
+  // Bod 'pit' is alleen gehaald als de spelende partij alle slagen haalt (special 'pit').
   // Zonder opgeslagen bod (oude rondes) geldt: meer dan de helft van de stokpunten.
   function scoreRound(r) {
     var total = gameTotal(!!r.sans);
+    var p = r.player;
     var pts = r.pts.slice();
     var roem = r.roem.slice();
     var label = '';
     var pitTeam = null;
-    var bid = typeof r.bid === 'number' ? r.bid : Math.floor(total / 2) + 1;
+    var s = r.special;
 
-    if (r.special === 'pit0' || r.special === 'pit1') {
-      pitTeam = Number(r.special.slice(3));
+    if (s === 'pit') pitTeam = p;
+    else if (s === 'pit0' || s === 'pit1') pitTeam = Number(s.slice(3));
+
+    if (pitTeam !== null) {
       pts[pitTeam] = total;
       pts[1 - pitTeam] = 0;
       roem[pitTeam] += PIT_BONUS;
       label = 'pit';
     }
 
+    var made;
+    if (s === 'nat') {
+      made = false;
+    } else if (pitTeam !== null) {
+      made = pitTeam === p;
+    } else if (r.bid === 'pit') {
+      made = false;
+    } else {
+      var bid = typeof r.bid === 'number' ? r.bid : Math.floor(total / 2) + 1;
+      made = pts[p] >= bid;
+    }
+
     var raw = [pts[0] + roem[0], pts[1] + roem[1]];
-    var p = r.player;
-    var made = pitTeam !== null ? pitTeam === p : pts[p] >= bid;
     var nat = null;
     if (!made) {
       nat = p;
@@ -329,7 +355,7 @@
       raw[1 - p] = total + roem[0] + roem[1];
       label = 'nat';
     }
-    return { raw: raw, score: [paper(raw[0]), paper(raw[1])], label: label, nat: nat, made: made, bid: bid };
+    return { raw: raw, score: [paper(raw[0]), paper(raw[1])], label: label, nat: nat, made: made, pitTeam: pitTeam };
   }
 
   // ---- Opslag --------------------------------------------------------------
@@ -347,14 +373,15 @@
   }
 
   var state = load() || { names: ['Wij', 'Zij'], rounds: [] };
-  var pit = null; // null | 0 | 1: welk team alle slagen haalde
+  var bid = null;    // null | getal | 'pit'
+  var result = null; // null | 'pit' | 'nat' (voor de spelende partij)
 
   // ---- DOM -----------------------------------------------------------------
   function $(id) { return document.getElementById(id); }
-  var bidEl = $('bid');
   var pts = [$('pts0'), $('pts1')];
   var roem = [$('roem0'), $('roem1')];
-  var pitBtn = [$('pit0'), $('pit1')];
+  var bidBtns = Array.prototype.slice.call(document.querySelectorAll('#bids button'));
+  var resBtn = { pit: $('resPit'), nat: $('resNat') };
   var saveBtn = $('save');
   var undoBtn = $('undo');
   var previewEl = $('preview');
@@ -364,15 +391,16 @@
     var c = document.querySelector('input[name=gtype]:checked');
     return !!c && c.value === 'sans';
   }
+  function playerVal() {
+    var c = document.querySelector('input[name=player]:checked');
+    return c ? Number(c.value) : null;
+  }
 
   function renderNames() {
     var els = document.querySelectorAll('[data-name]');
     for (var i = 0; i < els.length; i++) {
       els[i].textContent = teamName(Number(els[i].getAttribute('data-name')));
     }
-    // pit0 = team 0 haalde alle slagen, dus team 1 is "pit gespeeld"
-    pitBtn[0].textContent = teamName(1) + ' zijn pit gespeeld';
-    pitBtn[1].textContent = teamName(0) + ' zijn pit gespeeld';
   }
 
   function totals() {
@@ -383,6 +411,12 @@
       t[1] += s[1];
     });
     return t;
+  }
+
+  function bidText(r) {
+    if (typeof r.bid === 'number') return 'bod ' + r.bid;
+    if (r.bid === 'pit') return 'bod pit';
+    return '';
   }
 
   function renderRounds() {
@@ -397,7 +431,7 @@
       n.textContent = String(idx + 1);
       var info = [];
       if (r.sans) info.push('sans');
-      if (typeof r.bid === 'number' && r.special !== 'pit0' && r.special !== 'pit1') info.push('bod ' + r.bid);
+      if (bidText(r)) info.push(bidText(r));
       if (info.length) {
         var tag = document.createElement('small');
         tag.textContent = info.join(' · ');
@@ -412,7 +446,7 @@
         var isNat = res.label === 'nat' && res.nat === i;
         var text = String(res.raw[i]);
         if (isNat) text += ' · nat';
-        else if (res.label === 'pit' && res.raw[i] > 0) text += ' · pit';
+        else if (res.label === 'pit' && res.pitTeam === i) text += ' · pit';
         sm.textContent = text;
         if (isNat) sm.className = 'bad';
         td.appendChild(sm);
@@ -451,7 +485,7 @@
     $('name1').value = state.names[1];
     renderNames();
     renderRounds();
-    syncPoints();
+    syncForm();
     updatePreview();
   }
 
@@ -485,44 +519,79 @@
     return isNaN(v) ? null : v;
   }
 
-  // Zet max/placeholder voor troef of sans en vul de punten bij pit.
-  function syncPoints() {
-    var total = gameTotal(isSans());
+  // Bod 70 kan alleen bij sans. Bij sans zijn er maar 130 punten, dus 140 is daar onhaalbaar.
+  function bidAllowed(value, sans) {
+    if (value === 'pit') return true;
+    if (value === 70) return sans;
+    if (value > gameTotal(sans)) return false;
+    return true;
+  }
+
+  // Houdt knoppen, velden en grenzen in lijn met de gekozen waarden.
+  function syncForm() {
+    var sans = isSans();
+    var total = gameTotal(sans);
+    var p = playerVal();
+
+    // Bod-knoppen
+    if (bid !== null && !bidAllowed(bid, sans)) bid = null;
+    bidBtns.forEach(function (btn) {
+      var raw = btn.getAttribute('data-bid');
+      var value = raw === 'pit' ? 'pit' : Number(raw);
+      btn.disabled = !bidAllowed(value, sans);
+      btn.setAttribute('aria-pressed', bid === value ? 'true' : 'false');
+    });
+
+    // Pit / Nat (pas na keuze van de spelende partij)
+    resBtn.pit.disabled = p === null;
+    resBtn.nat.disabled = p === null;
+    resBtn.pit.setAttribute('aria-pressed', result === 'pit' ? 'true' : 'false');
+    resBtn.nat.setAttribute('aria-pressed', result === 'nat' ? 'true' : 'false');
+
+    // Punten
     pts[0].max = String(total);
     pts[1].max = String(total);
     pts[0].placeholder = '0–' + total;
     pts[1].placeholder = '0–' + total;
-    pitBtn[0].setAttribute('aria-pressed', pit === 0 ? 'true' : 'false');
-    pitBtn[1].setAttribute('aria-pressed', pit === 1 ? 'true' : 'false');
-    var locked = pit !== null;
+    var locked = result !== null;
     pts[0].disabled = locked;
     pts[1].disabled = locked;
-    if (locked) {
-      pts[pit].value = String(total);
-      pts[1 - pit].value = '0';
+    if (result === 'pit' && p !== null) {
+      pts[p].value = String(total);
+      pts[1 - p].value = '0';
+    } else if (result === 'nat') {
+      pts[0].value = '';
+      pts[1].value = '';
     }
   }
 
   function currentInput() {
-    var checked = document.querySelector('input[name=player]:checked');
-    var total = gameTotal(isSans());
-    var a = intVal(pts[0]);
-    var b = intVal(pts[1]);
+    var p = playerVal();
+    var sans = isSans();
+    var total = gameTotal(sans);
     var ra = intVal(roem[0]) || 0;
     var rb = intVal(roem[1]) || 0;
-    var bid = intVal(bidEl);
-    if (!checked || a === null || b === null) return null;
-    if (a < 0 || b < 0 || a > total || b > total || a + b !== total) return null;
+    var a = 0;
+    var b = 0;
+    if (p === null) return null;
     if (ra < 0 || rb < 0) return null;
-    // Zonder pit is een bod verplicht.
-    if (pit === null && (bid === null || bid < 1 || bid > total)) return null;
+
+    if (result === null) {
+      if (bid === null) return null;
+      a = intVal(pts[0]);
+      b = intVal(pts[1]);
+      if (a === null || b === null) return null;
+      if (a < 0 || b < 0 || a > total || b > total || a + b !== total) return null;
+    }
+    if (bid !== null && !bidAllowed(bid, sans)) return null;
+
     return {
-      player: Number(checked.value),
-      sans: isSans(),
-      bid: pit === null ? bid : null,
+      player: p,
+      sans: sans,
+      bid: bid,
       pts: [a, b],
       roem: [ra, rb],
-      special: pit === null ? 'none' : 'pit' + pit
+      special: result === null ? 'none' : result
     };
   }
 
@@ -533,8 +602,11 @@
       var total = gameTotal(isSans());
       var a = intVal(pts[0]);
       var b = intVal(pts[1]);
-      var msg = 'Kies wie speelde, vul het bod en de punten in (samen ' + total + ').';
-      if (a !== null && b !== null && a + b !== total) msg = 'De punten moeten samen ' + total + ' zijn.';
+      var msg;
+      if (playerVal() === null) msg = 'Kies eerst wie er speelde.';
+      else if (result === null && bid === null) msg = 'Kies het bod.';
+      else if (result === null && a !== null && b !== null && a + b !== total) msg = 'De punten moeten samen ' + total + ' zijn.';
+      else msg = 'Vul de punten in (samen ' + total + ').';
       previewEl.textContent = msg;
       return;
     }
@@ -550,12 +622,20 @@
     line.appendChild(document.createTextNode('  –  ' + teamName(1) + ' '));
     line.appendChild(s1);
     previewEl.appendChild(line);
+
     var detail = document.createElement('div');
-    var bidText = r.special === 'none'
-      ? 'Bod ' + r.bid + (res.made ? ' gehaald. ' : ' niet gehaald: ' + teamName(res.nat) + ' is nat. ')
-      : (res.made ? '' : teamName(res.nat) + ' is nat. ');
-    detail.textContent = bidText + '(' + res.raw[0] + ' – ' + res.raw[1] + ')';
+    var text;
+    if (r.special === 'pit') text = teamName(r.player) + ' haalde alle slagen (pit). ';
+    else if (r.special === 'nat') text = teamName(r.player) + ' is nat. ';
+    else if (r.bid === 'pit') text = 'Bod pit niet gehaald (niet alle slagen): ' + teamName(r.player) + ' is nat. Tik op Pit als ze alle slagen haalden. ';
+    else text = 'Bod ' + r.bid + (res.made ? ' gehaald. ' : ' niet gehaald: ' + teamName(res.nat) + ' is nat. ');
+    detail.textContent = text + '(' + res.raw[0] + ' – ' + res.raw[1] + ')';
     previewEl.appendChild(detail);
+  }
+
+  function refresh() {
+    syncForm();
+    updatePreview();
   }
 
   // Punten van het ene team vullen automatisch het andere in.
@@ -575,38 +655,39 @@
     el.addEventListener('input', updatePreview);
     el.addEventListener('change', updatePreview);
   });
+
   Array.prototype.forEach.call(document.querySelectorAll('input[name=player]'), function (el) {
-    el.addEventListener('change', updatePreview);
-  });
-  bidEl.addEventListener('input', updatePreview);
-  bidEl.addEventListener('change', updatePreview);
-  $('bidChips').addEventListener('click', function (e) {
-    var btn = e.target.closest('button');
-    if (!btn) return;
-    bidEl.value = btn.getAttribute('data-bid');
-    updatePreview();
+    el.addEventListener('change', refresh);
   });
   Array.prototype.forEach.call(document.querySelectorAll('input[name=gtype]'), function (el) {
     el.addEventListener('change', function () {
       // andere puntentotaal: invoer wissen om een ongeldige som te voorkomen
-      if (pit === null) { pts[0].value = ''; pts[1].value = ''; }
-      syncPoints();
-      updatePreview();
+      if (result === null) { pts[0].value = ''; pts[1].value = ''; }
+      refresh();
     });
   });
 
-  // Pit: opnieuw tikken zet het weer uit.
-  [0, 1].forEach(function (i) {
-    pitBtn[i].addEventListener('click', function () {
-      if (pit === i) {
-        pit = null;
+  // Bod: opnieuw tikken zet het weer uit.
+  bidBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var raw = btn.getAttribute('data-bid');
+      var value = raw === 'pit' ? 'pit' : Number(raw);
+      bid = bid === value ? null : value;
+      refresh();
+    });
+  });
+
+  // Pit / Nat: opnieuw tikken zet het weer uit. Pit en nat sluiten elkaar uit.
+  ['pit', 'nat'].forEach(function (kind) {
+    resBtn[kind].addEventListener('click', function () {
+      if (result === kind) {
+        result = null;
         pts[0].value = '';
         pts[1].value = '';
       } else {
-        pit = i;
+        result = kind;
       }
-      syncPoints();
-      updatePreview();
+      refresh();
     });
   });
 
@@ -622,8 +703,8 @@
   });
 
   function clearForm() {
-    pit = null;
-    bidEl.value = '';
+    result = null;
+    bid = null;
     pts[0].value = '';
     pts[1].value = '';
     roem[0].value = '0';
