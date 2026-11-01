@@ -16,6 +16,18 @@
     --purple: #6472A7;
     --purple-text: #ffffff;
     --split: linear-gradient(to bottom right, #A8E2D7 50%, #6472A7 50%);
+    /* Basismodel: groen. De lustrum-editie (body.lustrum) overschrijft de variabelen hieronder. */
+    --accent: #1f6f43;
+    --accent-text: #ffffff;
+    --sel-l-bg: var(--accent);
+    --sel-l-fg: var(--accent-text);
+    --sel-m-bg: var(--accent);
+    --sel-m-fg: var(--accent-text);
+    --sel-r-bg: var(--accent);
+    --sel-r-fg: var(--accent-text);
+    --save-bg: var(--accent);
+    --save-fg: var(--accent-text);
+    --focus: var(--accent);
     --danger: #b3261e;
     --nat: #b3261e;
     --radius: 12px;
@@ -27,10 +39,25 @@
       --text: #ecebe6;
       --muted: #9b9a92;
       --line: #34372f;
+      --accent: #4caf7a;
+      --accent-text: #0e1a12;
       --danger: #f2877f;
       --nat: #f2877f;
     }
   }
+  /* Lustrum editie: links aquamarijn, rechts paars, tweekleurige knoppen in het midden */
+  body.lustrum {
+    --sel-l-bg: var(--aqua);
+    --sel-l-fg: var(--aqua-text);
+    --sel-m-bg: var(--split);
+    --sel-m-fg: var(--aqua-text);
+    --sel-r-bg: var(--purple);
+    --sel-r-fg: var(--purple-text);
+    --save-bg: var(--split);
+    --save-fg: var(--aqua-text);
+    --focus: var(--purple);
+  }
+  [hidden] { display: none !important; }
   * { box-sizing: border-box; }
   body {
     margin: 0;
@@ -52,10 +79,10 @@
     padding: 8px 12px;
   }
   button:disabled { opacity: .4; cursor: not-allowed; }
-  /* Opslaan-knop: aquamarijn links/boven, paars rechts/onder, gescheiden door de lijn van linksonder naar rechtsboven */
+  /* Opslaan-knop: basis groen; lustrum: aquamarijn links/boven, paars rechts/onder (lijn van linksonder naar rechtsboven) */
   button.primary {
-    background: var(--split);
-    color: var(--aqua-text);
+    background: var(--save-bg);
+    color: var(--save-fg);
     border: none;
     font-weight: 700;
     font-size: 17px;
@@ -105,29 +132,27 @@
   }
   .seg input { position: absolute; opacity: 0; pointer-events: none; }
   .seg input:checked + span { font-weight: 700; }
-  /* Linker keuze aquamarijn, rechter keuze paars */
-  .seg label:has(input:checked) { background: var(--aqua); color: var(--aqua-text); border-color: var(--aqua); }
-  .seg label:last-child:has(input:checked) { background: var(--purple); color: var(--purple-text); border-color: var(--purple); }
-  .seg label:has(input:focus-visible) { outline: 2px solid var(--purple); outline-offset: 2px; }
+  /* Gekozen knoppen: kleuren komen uit de variabelen (basis groen, lustrum aquamarijn links / paars rechts) */
+  .seg label:has(input:checked) { background: var(--sel-l-bg) border-box; color: var(--sel-l-fg); border-color: transparent; }
+  .seg label:last-child:has(input:checked) { background: var(--sel-r-bg) border-box; color: var(--sel-r-fg); }
+  .seg label:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
   .bids { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 0 14px; }
   .pits { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 4px; }
   .bids button, .pits button { padding: 11px 6px; font-size: 17px; }
-  /* Boden: linker kolom aquamarijn, rechter kolom paars, middelste kolom beide kleuren */
+  /* Boden: linker kolom, middelste kolom en rechter kolom hebben elk hun eigen kleur (alleen bij lustrum anders) */
   .bids button[aria-pressed="true"], .pits button[aria-pressed="true"] {
-    background: var(--aqua);
-    color: var(--aqua-text);
-    border-color: var(--aqua);
+    background: var(--sel-l-bg) border-box;
+    color: var(--sel-l-fg);
+    border-color: transparent;
     font-weight: 700;
   }
   .bids button[aria-pressed="true"]:nth-child(3n+2) {
-    background: var(--split);
-    background-origin: border-box;
-    border-color: transparent;
+    background: var(--sel-m-bg) border-box;
+    color: var(--sel-m-fg);
   }
   .bids button[aria-pressed="true"]:nth-child(3n) {
-    background: var(--purple);
-    color: var(--purple-text);
-    border-color: var(--purple);
+    background: var(--sel-r-bg) border-box;
+    color: var(--sel-r-fg);
   }
   .pits button#resNat[aria-pressed="true"] {
     background: var(--danger);
@@ -178,6 +203,9 @@
   .tools { display: flex; gap: 8px; margin-top: 12px; }
   .tools button { flex: 1; font-size: 14px; }
   .note { font-size: 12px; color: var(--muted); margin-top: 12px; }
+  .check { display: flex; align-items: center; gap: 10px; padding: 8px 0; font-size: 16px; color: var(--text); cursor: pointer; }
+  .check input { width: 20px; height: 20px; margin: 0; accent-color: var(--focus); }
+  .subopts { margin-left: 30px; border-left: 2px solid var(--line); padding-left: 12px; }
   dialog {
     border: 1px solid var(--line);
     border-radius: var(--radius);
@@ -296,6 +324,17 @@
       Gemaakt voor Geert van der Hulst.
     </p>
   </section>
+
+  <section class="card" aria-labelledby="h-opt">
+    <h2 id="h-opt">Opties</h2>
+    <label class="check"><input type="checkbox" id="optLustrum"> Lustrum editie</label>
+    <label class="check"><input type="checkbox" id="optZuip"> Zuipjassen editie</label>
+    <div class="subopts" id="zuipOpts" hidden>
+      <label class="check"><input type="checkbox" id="optTakbak" checked> Takbak</label>
+      <label class="check"><input type="checkbox" id="optNatbak" checked> Natbak</label>
+      <label class="check"><input type="checkbox" id="optPitliter" checked> Pitliter</label>
+    </div>
+  </section>
 </main>
 
 <dialog id="confirm" aria-labelledby="confirmMsg">
@@ -395,6 +434,9 @@
   }
 
   var state = load() || { names: ['Wij', 'Zij'], rounds: [] };
+  // Opties (editie). Takbak, natbak en pitliter hebben nog geen functie; ze worden alleen onthouden.
+  var OPT_DEFAULTS = { lustrum: false, zuipjassen: false, takbak: true, natbak: true, pitliter: true };
+  state.opts = Object.assign({}, OPT_DEFAULTS, state.opts || {});
   var bid = null;    // null | getal | 'pit'
   var result = null; // null | 'pit' | 'nat' (voor de spelende partij)
 
@@ -525,6 +567,7 @@
     renderRounds();
     syncForm();
     updatePreview();
+    applyOptions();
   }
 
   // ---- Bevestigingsvenster (confirm() werkt niet overal) ------------------
@@ -780,6 +823,27 @@
       save();
       renderNames();
       updatePreview();
+    });
+  });
+
+  // ---- Opties: lustrum (kleuren) en zuipjassen (toont drie tickboxen) ----------
+  var optEls = {
+    lustrum: $('optLustrum'),
+    zuipjassen: $('optZuip'),
+    takbak: $('optTakbak'),
+    natbak: $('optNatbak'),
+    pitliter: $('optPitliter')
+  };
+  function applyOptions() {
+    document.body.classList.toggle('lustrum', !!state.opts.lustrum);
+    $('zuipOpts').hidden = !state.opts.zuipjassen;
+    Object.keys(optEls).forEach(function (k) { optEls[k].checked = !!state.opts[k]; });
+  }
+  Object.keys(optEls).forEach(function (k) {
+    optEls[k].addEventListener('change', function () {
+      state.opts[k] = optEls[k].checked;
+      save();
+      applyOptions();
     });
   });
 
