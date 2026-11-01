@@ -167,8 +167,15 @@
     border-color: var(--danger);
     color: #fff;
   }
+  /* Punten van de spelende partij onder het bod: Nat moet eerst ingedrukt worden */
+  .pits button#resNat.warn:not([aria-pressed="true"]) {
+    border-color: var(--danger);
+    box-shadow: inset 0 0 0 1px var(--danger);
+    color: var(--danger);
+    font-weight: 700;
+  }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
-  .field input[type=number] {
+  .field input.pts {
     width: 100%;
     font: inherit;
     font-size: 18px;
@@ -179,7 +186,7 @@
     background: var(--bg);
     color: var(--text);
   }
-  .field input[type=number]:disabled { opacity: .6; }
+  .field input.pts:disabled { opacity: .75; color: var(--text); -webkit-text-fill-color: var(--text); font-weight: 700; }
   .tally {
     min-height: 46px;
     margin-top: 4px;
@@ -277,11 +284,11 @@
     <div class="grid2">
       <div class="field">
         <label for="pts0">Punten <span data-name="0"></span></label>
-        <input id="pts0" type="number" inputmode="numeric" min="0" max="162" step="1">
+        <input id="pts0" class="pts" type="text" inputmode="numeric" autocomplete="off">
       </div>
       <div class="field">
         <label for="pts1">Punten <span data-name="1"></span></label>
-        <input id="pts1" type="number" inputmode="numeric" min="0" max="162" step="1">
+        <input id="pts1" class="pts" type="text" inputmode="numeric" autocomplete="off">
       </div>
     </div>
 
@@ -754,18 +761,18 @@
     resBtn.pit.setAttribute('aria-pressed', result === 'pit' ? 'true' : 'false');
     resBtn.nat.setAttribute('aria-pressed', result === 'nat' ? 'true' : 'false');
 
-    // Punten
-    pts[0].max = String(total);
-    pts[1].max = String(total);
-    var locked = result !== null;
+    // Punten: bij Pit/Nat staat er geen getal maar een woord in de vakjes.
+    //  Pit: spelende partij = alle punten (162, of 130 bij sans), de verliezende partij = "pit".
+    //  Nat: spelende partij = "nat", de andere partij blijft leeg.
+    var locked = result !== null && p !== null;
     pts[0].disabled = locked;
     pts[1].disabled = locked;
     if (result === 'pit' && p !== null) {
       pts[p].value = String(total);
-      pts[1 - p].value = '0';
-    } else if (result === 'nat') {
-      pts[0].value = '';
-      pts[1].value = '';
+      pts[1 - p].value = 'pit';
+    } else if (result === 'nat' && p !== null) {
+      pts[p].value = 'nat';
+      pts[1 - p].value = '';
     }
   }
 
@@ -782,6 +789,8 @@
 
     if (result === null) {
       if (bid === null) return null;
+      // Bod pit: alleen Pit (gehaald) of Nat (niet gehaald) kan, de punten zeggen daar niets over.
+      if (bid === 'pit') return null;
       a = intVal(pts[0]);
       b = intVal(pts[1]);
       if (a === null || b === null) return null;
@@ -799,9 +808,21 @@
     };
   }
 
+  // Zijn de punten van de spelende partij lager dan het bod? Dan is het nat, en moet eerst op de
+  // Nat-knop getikt worden voordat de ronde opgeslagen kan worden.
+  function natRequired() {
+    if (result !== null || typeof bid !== 'number') return false;
+    var p = playerVal();
+    if (p === null) return false;
+    var v = intVal(pts[p]);
+    return v !== null && v < bid;
+  }
+
   function updatePreview() {
     var r = currentInput();
-    saveBtn.disabled = !r;
+    var needNat = natRequired();
+    saveBtn.disabled = !r || needNat;
+    resBtn.nat.classList.toggle('warn', needNat);
     if (!r) {
       var total = gameTotal(isSans());
       var a = intVal(pts[0]);
@@ -829,7 +850,6 @@
     var text;
     if (r.special === 'pit') text = teamName(r.player) + ' haalde alle slagen (pit). ';
     else if (r.special === 'nat') text = teamName(r.player) + ' is nat. ';
-    else if (r.bid === 'pit') text = 'Bod pit niet gehaald (niet alle slagen): ' + teamName(r.player) + ' is nat. Tik op Pit als ze alle slagen haalden. ';
     else text = 'Bod ' + r.bid + (res.made ? ' gehaald. ' : ' niet gehaald: ' + teamName(res.nat) + ' is nat. ');
     detail.textContent = text + '(' + res.raw[0] + ' – ' + res.raw[1] + ')';
     previewEl.appendChild(detail);
@@ -843,6 +863,7 @@
   // Punten van het ene team vullen automatisch het andere in.
   function linkPoints(i) {
     return function () {
+      pts[i].value = pts[i].value.replace(/\D/g, '').slice(0, 3); // alleen cijfers
       var total = gameTotal(isSans());
       var v = intVal(pts[i]);
       if (v === null) { pts[1 - i].value = ''; }
@@ -915,7 +936,7 @@
 
   saveBtn.addEventListener('click', function () {
     var r = currentInput();
-    if (!r) return;
+    if (!r || natRequired()) return;
     state.rounds.push(r);
     save();
     var lines = eventMessages(roundEvents(state.rounds, opts));
