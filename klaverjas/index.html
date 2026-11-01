@@ -267,7 +267,8 @@
     </div>
     <p class="note">
       Regels: troef = 162 punten per ronde, sans = 130, plus roem. Op papier tel je in tientallen en een rest
-      van 7 of meer rond je naar boven af (16 &rarr; 1, 27 &rarr; 3, 160 &rarr; 16). Bod 70 kan alleen bij sans.
+      van 7 of meer rond je naar boven af (16 &rarr; 1, 27 &rarr; 3, 160 &rarr; 16). Bod 70 kan alleen bij sans;
+      bij sans kun je tot 120 bieden (alle slagen halen doe je met Pit).
       De spelende partij moet minstens het bod aan stokpunten halen. Roem telt niet mee voor het halen van het
       bod, wel voor de score. Exact het bod halen is gehaald (bod 80, 80 punten: 8 &ndash; 8 op papier).
       Bod pit is alleen gehaald als de spelende partij alle slagen haalt. Pit = +100 roem. Haalt de spelende
@@ -519,10 +520,12 @@
     return isNaN(v) ? null : v;
   }
 
-  // Bod 70 kan alleen bij sans. Bij sans zijn er maar 130 punten, dus 140 is daar onhaalbaar.
+  // Bod 70 kan alleen bij sans. Een bod van het hele aantal punten of meer (sans: 130 en 140)
+  // kan niet: alle slagen halen doe je met de Pit-knop.
   function bidAllowed(value, sans) {
     if (value === 'pit') return true;
     if (value === 70) return sans;
+    if (sans && value >= gameTotal(true)) return false;
     if (value > gameTotal(sans)) return false;
     return true;
   }
