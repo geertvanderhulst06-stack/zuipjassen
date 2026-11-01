@@ -210,6 +210,16 @@
   td small { display: block; font-size: 12px; color: var(--muted); }
   td small .bad { color: var(--nat); font-weight: 600; }
   td small .tl { letter-spacing: .12em; font-weight: 700; }
+  td small .tl.strike { position: relative; display: inline-block; }
+  td small .tl.strike::after {
+    content: "";
+    position: absolute;
+    left: -3px;
+    right: -1px;
+    top: 50%;
+    border-top: 2px solid var(--nat);
+    transform: translateY(-50%);
+  }
   td.x { width: 2.4em; }
   td.x button { border: none; background: transparent; color: var(--muted); padding: 2px 6px; }
   tfoot td { font-weight: 700; font-size: 18px; border-bottom: none; padding-top: 12px; }
@@ -658,7 +668,8 @@
         var isPit = res.label === 'pit' && res.pitTeam === i;
         if (tl) {
           var tspan = document.createElement('span');
-          tspan.className = 'tl';
+          // Bij nat gaat de roem van het nat gegane team naar de tegenpartij: één grote streep erdoorheen.
+          tspan.className = isNat ? 'tl strike' : 'tl';
           tspan.textContent = tl;
           sm.appendChild(tspan);
         }
