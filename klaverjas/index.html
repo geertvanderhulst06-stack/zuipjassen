@@ -203,8 +203,6 @@
   .chips { display: flex; gap: 6px; margin-top: 6px; }
   .chips button { flex: 1; padding: 10px 6px; font-size: 16px; }
   .chips button[data-add="0"] { flex: .7; font-size: 14px; color: var(--muted); }
-  #preview { margin-top: 12px; font-size: 14px; color: var(--muted); min-height: 2.6em; }
-  #preview strong { color: var(--text); }
   table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
   th, td { padding: 8px 4px; text-align: center; border-bottom: 1px solid var(--line); }
   th { font-size: 13px; color: var(--muted); font-weight: 600; }
@@ -318,7 +316,6 @@
       <button type="button" id="resNat" aria-pressed="false" disabled>Nat</button>
     </div>
 
-    <div id="preview" aria-live="polite"></div>
     <button type="button" class="primary" id="save" disabled>Ronde opslaan</button>
   </section>
 
@@ -577,7 +574,6 @@
   var resBtn = { pit: $('resPit'), nat: $('resNat') };
   var saveBtn = $('save');
   var undoBtn = $('undo');
-  var previewEl = $('preview');
 
   function teamName(i) { return state.names[i] || (i === 0 ? 'Team 1' : 'Team 2'); }
   function isSans() {
@@ -680,7 +676,7 @@
     renderNames();
     renderRounds();
     syncForm();
-    updatePreview();
+    updateForm();
     applyOptions();
   }
 
@@ -818,46 +814,17 @@
     return v !== null && v < bid;
   }
 
-  function updatePreview() {
+  // Opslaan kan pas als de ronde compleet is en (bij punten onder het bod) eerst op Nat getikt is.
+  function updateForm() {
     var r = currentInput();
     var needNat = natRequired();
     saveBtn.disabled = !r || needNat;
     resBtn.nat.classList.toggle('warn', needNat);
-    if (!r) {
-      var total = gameTotal(isSans());
-      var a = intVal(pts[0]);
-      var b = intVal(pts[1]);
-      // Alleen een foutmelding tonen; verder blijft dit vak leeg tot de ronde compleet is.
-      previewEl.textContent = (result === null && a !== null && b !== null && a + b !== total)
-        ? 'De punten moeten samen ' + total + ' zijn.'
-        : '';
-      return;
-    }
-    var res = scoreRound(r);
-    previewEl.innerHTML = '';
-    var line = document.createElement('div');
-    var s0 = document.createElement('strong');
-    s0.textContent = String(res.score[0]);
-    var s1 = document.createElement('strong');
-    s1.textContent = String(res.score[1]);
-    line.appendChild(document.createTextNode('Op papier: ' + teamName(0) + ' '));
-    line.appendChild(s0);
-    line.appendChild(document.createTextNode('  –  ' + teamName(1) + ' '));
-    line.appendChild(s1);
-    previewEl.appendChild(line);
-
-    var detail = document.createElement('div');
-    var text;
-    if (r.special === 'pit') text = teamName(r.player) + ' haalde alle slagen (pit). ';
-    else if (r.special === 'nat') text = teamName(r.player) + ' is nat. ';
-    else text = 'Bod ' + r.bid + (res.made ? ' gehaald. ' : ' niet gehaald: ' + teamName(res.nat) + ' is nat. ');
-    detail.textContent = text + '(' + res.raw[0] + ' – ' + res.raw[1] + ')';
-    previewEl.appendChild(detail);
   }
 
   function refresh() {
     syncForm();
-    updatePreview();
+    updateForm();
   }
 
   // Punten van het ene team vullen automatisch het andere in.
@@ -868,7 +835,7 @@
       var v = intVal(pts[i]);
       if (v === null) { pts[1 - i].value = ''; }
       else if (v >= 0 && v <= total) { pts[1 - i].value = String(total - v); }
-      updatePreview();
+      updateForm();
     };
   }
   pts[0].addEventListener('input', linkPoints(0));
@@ -919,7 +886,7 @@
       else if (add === 50) tally[team].n50++;
       else { tally[team].n20 = 0; tally[team].n50 = 0; }
       renderTally();
-      updatePreview();
+      updateForm();
     });
   });
 
@@ -968,7 +935,7 @@
       state.names[i] = e.target.value;
       save();
       renderNames();
-      updatePreview();
+      updateForm();
     });
   });
 
