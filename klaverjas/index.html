@@ -68,8 +68,18 @@
     font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
   main { max-width: 640px; margin: 0 auto; padding: 16px 14px 48px; }
-  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  /* Titel in het midden; links een lege kolom en rechts de knop houden hem gecentreerd */
+  header { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin-bottom: 14px; }
   h1 { font-size: 22px; margin: 0; }
+  header h1 { text-align: center; white-space: nowrap; font-size: 20px; }
+  header button { justify-self: end; font-size: 13px; padding: 6px 9px; }
+  .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .tabs button { padding: 10px 6px; font-size: 16px; }
+  .tabs button[aria-selected="true"] { background: var(--sel-l-bg) border-box; color: var(--sel-l-fg); border-color: transparent; font-weight: 700; }
+  .tabs button:last-child[aria-selected="true"] { background: var(--sel-r-bg) border-box; color: var(--sel-r-fg); }
+  .team .tname { color: var(--text); font-weight: 700; text-align: center; border-bottom: 1px dashed var(--line); padding: 2px 0 4px; }
+  .unit { font-size: 14px; color: var(--muted); }
+  .drinks { margin-bottom: 0; }
   h2 { font-size: 16px; margin: 0 0 12px; }
   button {
     font: inherit;
@@ -227,10 +237,18 @@
 <body>
 <main>
   <header>
+    <span></span>
     <h1>Gronings jassen</h1>
     <button type="button" id="newGame">Nieuw spel</button>
   </header>
 
+  <!-- Tabs: alleen zichtbaar als de zuipjassen-editie aanstaat -->
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Weergave" hidden>
+    <button type="button" role="tab" id="tabMain" aria-selected="true">Jassen</button>
+    <button type="button" role="tab" id="tabDrinks" aria-selected="false">Gedronken</button>
+  </nav>
+
+  <div id="viewMain">
   <section class="scoreboard" aria-label="Stand">
     <div class="team">
       <input class="name" id="name0" maxlength="20" aria-label="Naam team 1">
@@ -338,6 +356,25 @@
       <label class="check"><input type="checkbox" id="optPitliter" checked> Pitliter</label>
     </div>
   </section>
+  </div>
+
+  <div id="viewDrinks" hidden>
+    <section class="card" aria-labelledby="h-drink">
+      <h2 id="h-drink">Gedronken per persoon</h2>
+      <div class="scoreboard drinks">
+        <div class="team">
+          <div class="tname" data-name="0"></div>
+          <div class="total" id="drink0">0,0</div>
+          <div class="unit">liter</div>
+        </div>
+        <div class="team">
+          <div class="tname" data-name="1"></div>
+          <div class="total" id="drink1">0,0</div>
+          <div class="unit">liter</div>
+        </div>
+      </div>
+    </section>
+  </div>
 </main>
 
 <dialog id="confirm" aria-labelledby="confirmMsg">
@@ -440,16 +477,15 @@
     var last = rounds[rounds.length - 1];
     var res = scoreRound(last);
     var pitMade = last.special === 'pit';
-    var pitBidFailed = last.bid === 'pit' && !pitMade;
+    var pitBid = last.bid === 'pit';
 
-    // Pit gehaald (de tegenpartij is pit gespeeld) -> tegenpartij trekt een liter.
-    //  - Gewoon jassen: alleen als pit ook geboden was.
-    //  - Zuipjassen: gehaald is genoeg (het bod maakt niet uit), mits 'Pitliter' aanstaat.
-    if (pitMade && (zuip ? opts.pitliter : last.bid === 'pit')) ev[1 - last.player].liter++;
+    // Pit geboden én gehaald: de tegenpartij (pit gespeeld) trekt ALTIJD een liter, ook zonder
+    // zuipjassen of met 'Pitliter' uit. Pit gehaald zonder het te bieden: alleen bij zuipjassen
+    // met 'Pitliter' aan.
+    if (pitMade && (pitBid || (zuip && opts.pitliter))) ev[1 - last.player].liter++;
 
-    // Pit geboden maar niet gehaald -> het biedende team trekt een halve liter
-    // (bij zuipjassen alleen als 'Pitliter' aanstaat).
-    if (pitBidFailed && (!zuip || opts.pitliter)) ev[last.player].halve++;
+    // Pit geboden maar niet gehaald: het biedende team trekt altijd een halve liter.
+    if (pitBid && !pitMade) ev[last.player].halve++;
 
     // Natbak (zuipjassen): het team dat nat ging trekt een bak.
     if (zuip && opts.natbak && res.nat !== null) ev[res.nat].bak++;
@@ -487,6 +523,21 @@
     return lines;
   }
 
+  // Wat is er in het hele potje gedronken? Per team, in ml per persoon (iedereen in het team
+  // trekt wat de melding zegt). In het echt: liter = 900 ml (3 biertjes), halve liter = 500 ml, bak = 300 ml.
+  var ML = { liter: 900, halve: 500, bak: 300 };
+  function drinkMl(rounds, o) {
+    var ml = [0, 0];
+    for (var i = 1; i <= rounds.length; i++) {
+      var ev = roundEvents(rounds.slice(0, i), o);
+      for (var t = 0; t < 2; t++) {
+        ml[t] += ev[t].liter * ML.liter + ev[t].halve * ML.halve + ev[t].bak * ML.bak;
+      }
+    }
+    return ml;
+  }
+  function litersText(ml) { return (ml / 1000).toFixed(1).replace('.', ','); }
+
   // ---- Opslag --------------------------------------------------------------
   function load() {
     try {
@@ -502,9 +553,10 @@
   }
 
   var state = load() || { names: ['Wij', 'Zij'], rounds: [] };
-  // Opties (editie). Takbak, natbak en pitliter hebben nog geen functie; ze worden alleen onthouden.
-  var OPT_DEFAULTS = { lustrum: false, zuipjassen: false, takbak: true, natbak: true, pitliter: true };
-  state.opts = Object.assign({}, OPT_DEFAULTS, state.opts || {});
+  // Opties (editie) worden bewust NIET bewaard: bij het openen staan lustrum en zuipjassen uit,
+  // en staan takbak, natbak en pitliter (binnen zuipjassen) aan.
+  var opts = { lustrum: false, zuipjassen: false, takbak: true, natbak: true, pitliter: true };
+  delete state.opts; // oudere versies bewaarden de opties
   var bid = null;    // null | getal | 'pit'
   var result = null; // null | 'pit' | 'nat' (voor de spelende partij)
 
@@ -879,7 +931,7 @@
     if (!r) return;
     state.rounds.push(r);
     save();
-    var lines = eventMessages(roundEvents(state.rounds, state.opts));
+    var lines = eventMessages(roundEvents(state.rounds, opts));
     clearForm();
     render();
     showAlerts(lines);
@@ -920,21 +972,39 @@
     natbak: $('optNatbak'),
     pitliter: $('optPitliter')
   };
+  var view = 'main'; // 'main' | 'drinks' (de Gedronken-tab bestaat alleen bij zuipjassen)
+  function renderView() {
+    var drinks = !!opts.zuipjassen && view === 'drinks';
+    $('viewMain').hidden = drinks;
+    $('viewDrinks').hidden = !drinks;
+    $('tabMain').setAttribute('aria-selected', drinks ? 'false' : 'true');
+    $('tabDrinks').setAttribute('aria-selected', drinks ? 'true' : 'false');
+    if (drinks) {
+      var ml = drinkMl(state.rounds, opts);
+      $('drink0').textContent = litersText(ml[0]);
+      $('drink1').textContent = litersText(ml[1]);
+    }
+  }
+  $('tabMain').addEventListener('click', function () { view = 'main'; renderView(); });
+  $('tabDrinks').addEventListener('click', function () { view = 'drinks'; renderView(); });
+
   function applyOptions() {
-    document.body.classList.toggle('lustrum', !!state.opts.lustrum);
-    $('zuipOpts').hidden = !state.opts.zuipjassen;
-    Object.keys(optEls).forEach(function (k) { optEls[k].checked = !!state.opts[k]; });
+    document.body.classList.toggle('lustrum', !!opts.lustrum);
+    $('zuipOpts').hidden = !opts.zuipjassen;
+    $('tabs').hidden = !opts.zuipjassen;
+    if (!opts.zuipjassen) view = 'main';
+    Object.keys(optEls).forEach(function (k) { optEls[k].checked = !!opts[k]; });
+    renderView();
   }
   Object.keys(optEls).forEach(function (k) {
     optEls[k].addEventListener('change', function () {
-      state.opts[k] = optEls[k].checked;
-      save();
+      opts[k] = optEls[k].checked;
       applyOptions();
     });
   });
 
   // Voor testen in de console / automatische tests.
-  window.__klaverjas = { scoreRound: scoreRound, paper: paper, roundEvents: roundEvents, eventMessages: eventMessages };
+  window.__klaverjas = { scoreRound: scoreRound, paper: paper, roundEvents: roundEvents, eventMessages: eventMessages, drinkMl: drinkMl, litersText: litersText };
 
   render();
 })();
