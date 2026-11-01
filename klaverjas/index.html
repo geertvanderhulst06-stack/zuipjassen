@@ -73,13 +73,9 @@
   h1 { font-size: 22px; margin: 0; }
   header h1 { text-align: center; white-space: nowrap; font-size: 20px; }
   header button { justify-self: end; font-size: 13px; padding: 6px 9px; }
-  .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
-  .tabs button { padding: 10px 6px; font-size: 16px; }
-  .tabs button[aria-selected="true"] { background: var(--sel-l-bg) border-box; color: var(--sel-l-fg); border-color: transparent; font-weight: 700; }
-  .tabs button:last-child[aria-selected="true"] { background: var(--sel-r-bg) border-box; color: var(--sel-r-fg); }
   .team .tname { color: var(--text); font-weight: 700; text-align: center; border-bottom: 1px dashed var(--line); padding: 2px 0 4px; }
   .unit { font-size: 14px; color: var(--muted); }
-  .drinks { margin-bottom: 0; }
+  .scoreboard.drinks { margin-bottom: 0; }
   h2 { font-size: 16px; margin: 0 0 12px; }
   button {
     font: inherit;
@@ -242,13 +238,6 @@
     <button type="button" id="newGame">Nieuw spel</button>
   </header>
 
-  <!-- Tabs: alleen zichtbaar als de zuipjassen-editie aanstaat -->
-  <nav class="tabs" id="tabs" role="tablist" aria-label="Weergave" hidden>
-    <button type="button" role="tab" id="tabMain" aria-selected="true">Jassen</button>
-    <button type="button" role="tab" id="tabDrinks" aria-selected="false">Gedronken</button>
-  </nav>
-
-  <div id="viewMain">
   <section class="scoreboard" aria-label="Stand">
     <div class="team">
       <input class="name" id="name0" maxlength="20" aria-label="Naam team 1">
@@ -346,6 +335,23 @@
     </p>
   </section>
 
+  <!-- Alleen zichtbaar als de zuipjassen-editie aanstaat -->
+  <section class="card" id="drinksCard" aria-labelledby="h-drink" hidden>
+    <h2 id="h-drink">Volume per persoon</h2>
+    <div class="scoreboard drinks">
+      <div class="team">
+        <div class="tname" data-name="0"></div>
+        <div class="total" id="drink0">0,0</div>
+        <div class="unit">liter</div>
+      </div>
+      <div class="team">
+        <div class="tname" data-name="1"></div>
+        <div class="total" id="drink1">0,0</div>
+        <div class="unit">liter</div>
+      </div>
+    </div>
+  </section>
+
   <section class="card" aria-labelledby="h-opt">
     <h2 id="h-opt">Opties</h2>
     <label class="check"><input type="checkbox" id="optLustrum"> Lustrum editie</label>
@@ -356,25 +362,6 @@
       <label class="check"><input type="checkbox" id="optPitliter" checked> Pitliter</label>
     </div>
   </section>
-  </div>
-
-  <div id="viewDrinks" hidden>
-    <section class="card" aria-labelledby="h-drink">
-      <h2 id="h-drink">Gedronken per persoon</h2>
-      <div class="scoreboard drinks">
-        <div class="team">
-          <div class="tname" data-name="0"></div>
-          <div class="total" id="drink0">0,0</div>
-          <div class="unit">liter</div>
-        </div>
-        <div class="team">
-          <div class="tname" data-name="1"></div>
-          <div class="total" id="drink1">0,0</div>
-          <div class="unit">liter</div>
-        </div>
-      </div>
-    </section>
-  </div>
 </main>
 
 <dialog id="confirm" aria-labelledby="confirmMsg">
@@ -972,29 +959,20 @@
     natbak: $('optNatbak'),
     pitliter: $('optPitliter')
   };
-  var view = 'main'; // 'main' | 'drinks' (de Gedronken-tab bestaat alleen bij zuipjassen)
-  function renderView() {
-    var drinks = !!opts.zuipjassen && view === 'drinks';
-    $('viewMain').hidden = drinks;
-    $('viewDrinks').hidden = !drinks;
-    $('tabMain').setAttribute('aria-selected', drinks ? 'false' : 'true');
-    $('tabDrinks').setAttribute('aria-selected', drinks ? 'true' : 'false');
-    if (drinks) {
-      var ml = drinkMl(state.rounds, opts);
-      $('drink0').textContent = litersText(ml[0]);
-      $('drink1').textContent = litersText(ml[1]);
-    }
+  // 'Volume per persoon': alleen zichtbaar bij zuipjassen, tussen Rondes en Opties.
+  function renderDrinks() {
+    $('drinksCard').hidden = !opts.zuipjassen;
+    if (!opts.zuipjassen) return;
+    var ml = drinkMl(state.rounds, opts);
+    $('drink0').textContent = litersText(ml[0]);
+    $('drink1').textContent = litersText(ml[1]);
   }
-  $('tabMain').addEventListener('click', function () { view = 'main'; renderView(); });
-  $('tabDrinks').addEventListener('click', function () { view = 'drinks'; renderView(); });
 
   function applyOptions() {
     document.body.classList.toggle('lustrum', !!opts.lustrum);
     $('zuipOpts').hidden = !opts.zuipjassen;
-    $('tabs').hidden = !opts.zuipjassen;
-    if (!opts.zuipjassen) view = 'main';
     Object.keys(optEls).forEach(function (k) { optEls[k].checked = !!opts[k]; });
-    renderView();
+    renderDrinks();
   }
   Object.keys(optEls).forEach(function (k) {
     optEls[k].addEventListener('change', function () {
