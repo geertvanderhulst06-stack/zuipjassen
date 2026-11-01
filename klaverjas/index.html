@@ -208,6 +208,8 @@
   th { font-size: 13px; color: var(--muted); font-weight: 600; }
   td.n, th.n { text-align: left; color: var(--muted); width: 3.6em; }
   td small { display: block; font-size: 12px; color: var(--muted); }
+  /* Dunne zwarte streep na elke 4 handjes (een tak) */
+  tr.tak-end td { border-bottom: 1.5px solid var(--text); }
   td small .bad { color: var(--nat); font-weight: 600; }
   td small .tl { letter-spacing: .12em; font-weight: 700; }
   td small .tl.strike { position: relative; display: inline-block; }
@@ -643,6 +645,7 @@
     state.rounds.forEach(function (r, idx) {
       var res = scoreRound(r);
       var tr = document.createElement('tr');
+      if ((idx + 1) % TAK_LENGTH === 0) tr.className = 'tak-end'; // streep na elke 4 handjes (1 tak)
 
       var n = document.createElement('td');
       n.className = 'n';
@@ -824,8 +827,10 @@
     if (p === null) return null;
     if (ra < 0 || rb < 0) return null;
 
+    // Het bod is altijd verplicht (ook bij Pit en Nat), zodat het in elke ronde in de tabel staat.
+    if (bid === null) return null;
+
     if (result === null) {
-      if (bid === null) return null;
       // Bod pit: alleen Pit (gehaald) of Nat (niet gehaald) kan, de punten zeggen daar niets over.
       if (bid === 'pit') return null;
       a = intVal(pts[0]);
