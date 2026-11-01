@@ -11,8 +11,11 @@
     --text: #1c1c1a;
     --muted: #6b6a64;
     --line: #dcd8cd;
-    --accent: #1f6f43;
-    --accent-text: #ffffff;
+    --aqua: #A8E2D7;
+    --aqua-text: #14181a;
+    --purple: #6472A7;
+    --purple-text: #ffffff;
+    --split: linear-gradient(to bottom right, #A8E2D7 50%, #6472A7 50%);
     --danger: #b3261e;
     --nat: #b3261e;
     --radius: 12px;
@@ -24,8 +27,6 @@
       --text: #ecebe6;
       --muted: #9b9a92;
       --line: #34372f;
-      --accent: #4caf7a;
-      --accent-text: #0e1a12;
       --danger: #f2877f;
       --nat: #f2877f;
     }
@@ -51,13 +52,15 @@
     padding: 8px 12px;
   }
   button:disabled { opacity: .4; cursor: not-allowed; }
+  /* Opslaan-knop: aquamarijn links/boven, paars rechts/onder, gescheiden door de lijn van linksonder naar rechtsboven */
   button.primary {
-    background: var(--accent);
-    color: var(--accent-text);
-    border-color: var(--accent);
-    font-weight: 600;
+    background: var(--split);
+    color: var(--aqua-text);
+    border: none;
+    font-weight: 700;
+    font-size: 17px;
     width: 100%;
-    padding: 12px;
+    padding: 13px;
     margin-top: 14px;
   }
   .card {
@@ -102,16 +105,29 @@
   }
   .seg input { position: absolute; opacity: 0; pointer-events: none; }
   .seg input:checked + span { font-weight: 700; }
-  .seg label:has(input:checked) { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
-  .seg label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+  /* Linker keuze aquamarijn, rechter keuze paars */
+  .seg label:has(input:checked) { background: var(--aqua); color: var(--aqua-text); border-color: var(--aqua); }
+  .seg label:last-child:has(input:checked) { background: var(--purple); color: var(--purple-text); border-color: var(--purple); }
+  .seg label:has(input:focus-visible) { outline: 2px solid var(--purple); outline-offset: 2px; }
   .bids { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 0 14px; }
   .pits { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 4px; }
   .bids button, .pits button { padding: 11px 6px; font-size: 17px; }
+  /* Boden: linker kolom aquamarijn, rechter kolom paars, middelste kolom beide kleuren */
   .bids button[aria-pressed="true"], .pits button[aria-pressed="true"] {
-    background: var(--accent);
-    color: var(--accent-text);
-    border-color: var(--accent);
+    background: var(--aqua);
+    color: var(--aqua-text);
+    border-color: var(--aqua);
     font-weight: 700;
+  }
+  .bids button[aria-pressed="true"]:nth-child(3n+2) {
+    background: var(--split);
+    background-origin: border-box;
+    border-color: transparent;
+  }
+  .bids button[aria-pressed="true"]:nth-child(3n) {
+    background: var(--purple);
+    color: var(--purple-text);
+    border-color: var(--purple);
   }
   .pits button#resNat[aria-pressed="true"] {
     background: var(--danger);
@@ -276,7 +292,8 @@
     </div>
     <p class="note">
       Regels: troef = 162 punten per ronde, sans = 130, plus roem. Op papier tel je in tientallen en een rest
-      van 7 of meer rond je naar boven af (16 &rarr; 1, 27 &rarr; 3, 160 &rarr; 16).
+      van 7 of meer rond je naar boven af (16 &rarr; 1, 27 &rarr; 3, 160 &rarr; 16).<br>
+      Gemaakt voor Geert van der Hulst.
     </p>
   </section>
 </main>
