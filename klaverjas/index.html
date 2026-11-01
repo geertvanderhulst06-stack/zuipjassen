@@ -495,6 +495,7 @@
   // Pit-drinken geldt voor beide versies (lustrum is alleen een kleurinstelling); natbak en takbak
   // horen bij de zuipjassen-editie en hebben elk een eigen tickbox.
   // Meldingen voor hetzelfde team uit dezelfde ronde stapelen (bijv. natbak + takbak = 2 bakken).
+  // Uitzondering: bij een mislukt pit-bod vervalt de natbak (alleen halve liter, eventueel + takbak).
   var TAK_LENGTH = 4; // 1 tak = 4 handjes (rondes)
   function roundEvents(rounds, opts) {
     var ev = [{ bak: 0, liter: 0, halve: 0 }, { bak: 0, liter: 0, halve: 0 }];
@@ -513,8 +514,9 @@
     // Pit geboden maar niet gehaald: het biedende team trekt altijd een halve liter.
     if (pitBid && !pitMade) ev[last.player].halve++;
 
-    // Natbak (zuipjassen): het team dat nat ging trekt een bak.
-    if (zuip && opts.natbak && res.nat !== null) ev[res.nat].bak++;
+    // Natbak (zuipjassen): het team dat nat ging trekt een bak. Bij een mislukt pit-bod vervalt de
+    // natbak: dan geldt alleen de halve liter hierboven (die stapelt wel met de takbak hieronder).
+    if (zuip && opts.natbak && res.nat !== null && !pitBid) ev[res.nat].bak++;
 
     // Takbak (zuipjassen): na elke 4 rondes (1 tak, los van andere takken) trekt het team met de
     // minste punten op papier een bak. Bij gelijk aantal punten trekken beide teams een bak.
