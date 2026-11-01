@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Klaverjas kladblok</title>
+<style>
+  :root {
+    --bg: #f4f1ea;
+    --card: #ffffff;
+    --text: #1c1c1a;
+    --muted: #6b6a64;
+    --line: #dcd8cd;
+    --accent: #1f6f43;
+    --accent-text: #ffffff;
+    --danger: #b3261e;
+    --nat: #b3261e;
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151614;
+      --card: #202220;
+      --text: #ecebe6;
+      --muted: #9b9a92;
+      --line: #34372f;
+      --accent: #4caf7a;
+      --accent-text: #0e1a12;
+      --danger: #f2877f;
+      --nat: #f2877f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 640px; margin: 0 auto; padding: 16px 14px 48px; }
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  h1 { font-size: 22px; margin: 0; }
+  h2 { font-size: 16px; margin: 0 0 12px; }
+  button {
+    font: inherit;
+    cursor: pointer;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 8px 12px;
+  }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.primary {
+    background: var(--accent);
+    color: var(--accent-text);
+    border-color: var(--accent);
+    font-weight: 600;
+    width: 100%;
+    padding: 12px;
+    margin-top: 14px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .scoreboard { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .team {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 12px;
+    text-align: center;
+  }
+  .team input.name {
+    width: 100%;
+    text-align: center;
+    border: none;
+    border-bottom: 1px dashed var(--line);
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-weight: 600;
+    padding: 2px 0 4px;
+  }
+  .team .total { font-size: 44px; font-weight: 700; line-height: 1.1; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .lbl, label { font-size: 14px; color: var(--muted); }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0 14px; }
+  .seg label {
+    display: block;
+    text-align: center;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 6px;
+    cursor: pointer;
+    color: var(--text);
+    font-size: 16px;
+  }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg input:checked + span { font-weight: 700; }
+  .seg label:has(input:checked) { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  .seg label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .field input[type=number], select {
+    width: 100%;
+    font: inherit;
+    font-size: 18px;
+    padding: 10px;
+    margin-top: 4px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .chips button { padding: 5px 9px; font-size: 14px; }
+  #preview { margin-top: 12px; font-size: 14px; color: var(--muted); min-height: 2.6em; }
+  #preview strong { color: var(--text); }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { padding: 8px 4px; text-align: center; border-bottom: 1px solid var(--line); }
+  th { font-size: 13px; color: var(--muted); font-weight: 600; }
+  td.n, th.n { text-align: left; color: var(--muted); width: 2.2em; }
+  td small { display: block; font-size: 12px; color: var(--muted); }
+  td small.bad { color: var(--nat); font-weight: 600; }
+  td.x { width: 2.4em; }
+  td.x button { border: none; background: transparent; color: var(--muted); padding: 2px 6px; }
+  tfoot td { font-weight: 700; font-size: 18px; border-bottom: none; padding-top: 12px; }
+  .empty { color: var(--muted); font-size: 14px; text-align: center; padding: 8px 0; }
+  .tools { display: flex; gap: 8px; margin-top: 12px; }
+  .tools button { flex: 1; font-size: 14px; }
+  .note { font-size: 12px; color: var(--muted); margin-top: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Klaverjas</h1>
+    <button type="button" id="newGame">Nieuw spel</button>
+  </header>
+
+  <section class="scoreboard" aria-label="Stand">
+    <div class="team">
+      <input class="name" id="name0" maxlength="20" aria-label="Naam team 1">
+      <div class="total" id="total0">0</div>
+    </div>
+    <div class="team">
+      <input class="name" id="name1" maxlength="20" aria-label="Naam team 2">
+      <div class="total" id="total1">0</div>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="h-new">
+    <h2 id="h-new">Nieuwe ronde</h2>
+
+    <div class="lbl" id="lbl-player">Wie speelde?</div>
+    <div class="seg" role="radiogroup" aria-labelledby="lbl-player">
+      <label><input type="radio" name="player" value="0"><span data-name="0"></span></label>
+      <label><input type="radio" name="player" value="1"><span data-name="1"></span></label>
+    </div>
+
+    <div class="grid2">
+      <div class="field">
+        <label for="pts0">Punten <span data-name="0"></span></label>
+        <input id="pts0" type="number" inputmode="numeric" min="0" max="162" step="1" placeholder="0–162">
+      </div>
+      <div class="field">
+        <label for="pts1">Punten <span data-name="1"></span></label>
+        <input id="pts1" type="number" inputmode="numeric" min="0" max="162" step="1" placeholder="0–162">
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="field">
+        <label for="roem0">Roem <span data-name="0"></span></label>
+        <input id="roem0" type="number" inputmode="numeric" min="0" step="10" value="0">
+        <div class="chips" data-team="0">
+          <button type="button" data-add="20">+20</button>
+          <button type="button" data-add="50">+50</button>
+          <button type="button" data-add="100">+100</button>
+          <button type="button" data-add="0">wis</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="roem1">Roem <span data-name="1"></span></label>
+        <input id="roem1" type="number" inputmode="numeric" min="0" step="10" value="0">
+        <div class="chips" data-team="1">
+          <button type="button" data-add="20">+20</button>
+          <button type="button" data-add="50">+50</button>
+          <button type="button" data-add="100">+100</button>
+          <button type="button" data-add="0">wis</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="special">Bijzonder</label>
+      <select id="special"></select>
+    </div>
+
+    <div id="preview" aria-live="polite"></div>
+    <button type="button" class="primary" id="save" disabled>Ronde opslaan</button>
+  </section>
+
+  <section class="card" aria-labelledby="h-hist">
+    <h2 id="h-hist">Rondes</h2>
+    <table>
+      <thead>
+        <tr><th class="n">#</th><th data-name="0"></th><th data-name="1"></th><th></th></tr>
+      </thead>
+      <tbody id="rounds"></tbody>
+      <tfoot><tr><td class="n"></td><td id="foot0">0</td><td id="foot1">0</td><td></td></tr></tfoot>
+    </table>
+    <div class="empty" id="empty">Nog geen rondes gespeeld.</div>
+    <div class="tools">
+      <button type="button" id="undo" disabled>Laatste ronde ongedaan maken</button>
+    </div>
+    <p class="note">
+      Regels: 162 punten per ronde (stok) plus roem. Pit = +100 roem. De spelende partij moet meer
+      punten (stok + roem) halen dan de tegenpartij. Anders is die nat: 0 punten, en de tegenpartij
+      krijgt alle punten en alle roem. Bij gelijkstand is de spelende partij nat.
+    </p>
+  </section>
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  var TOTAL = 162;
+  var PIT_BONUS = 100;
+  var KEY = 'klaverjas-kladblok-v1';
+
+  // ---- Rekenen (los van de UI) -------------------------------------------
+  // r = { player: 0|1, pts: [a, b], roem: [a, b], special: 'none'|'pit0'|'pit1'|'verzaakt0'|'verzaakt1' }
+  function scoreRound(r) {
+    var pts = r.pts.slice();
+    var roem = r.roem.slice();
+    var label = '';
+    var s = r.special || 'none';
+    var team, other;
+
+    if (s === 'pit0' || s === 'pit1') {
+      team = Number(s.slice(3));
+      pts[team] = TOTAL;
+      pts[1 - team] = 0;
+      roem[team] += PIT_BONUS;
+      label = 'pit';
+    }
+
+    if (s === 'verzaakt0' || s === 'verzaakt1') {
+      team = Number(s.slice(8));
+      other = 1 - team;
+      var res = [0, 0];
+      res[other] = TOTAL + roem[0] + roem[1];
+      return { score: res, label: 'verzaakt' };
+    }
+
+    var tot = [pts[0] + roem[0], pts[1] + roem[1]];
+    var p = r.player;
+    if (tot[p] > tot[1 - p]) {
+      return { score: tot, label: label };
+    }
+    var nat = [0, 0];
+    nat[1 - p] = TOTAL + roem[0] + roem[1];
+    return { score: nat, label: 'nat', nat: p };
+  }
+
+  // ---- Opslag --------------------------------------------------------------
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (!raw) return null;
+      var d = JSON.parse(raw);
+      if (d && Array.isArray(d.names) && Array.isArray(d.rounds)) return d;
+    } catch (e) { /* negeren */ }
+    return null;
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* negeren */ }
+  }
+
+  var state = load() || { names: ['Wij', 'Zij'], rounds: [] };
+
+  // ---- DOM -----------------------------------------------------------------
+  function $(id) { return document.getElementById(id); }
+  var pts = [$('pts0'), $('pts1')];
+  var roem = [$('roem0'), $('roem1')];
+  var specialEl = $('special');
+  var saveBtn = $('save');
+  var undoBtn = $('undo');
+  var previewEl = $('preview');
+
+  function teamName(i) { return state.names[i] || (i === 0 ? 'Team 1' : 'Team 2'); }
+
+  function renderNames() {
+    var els = document.querySelectorAll('[data-name]');
+    for (var i = 0; i < els.length; i++) {
+      els[i].textContent = teamName(Number(els[i].getAttribute('data-name')));
+    }
+    var keep = specialEl.value || 'none';
+    specialEl.innerHTML = '';
+    var opts = [
+      ['none', 'Geen'],
+      ['pit0', 'Pit: ' + teamName(0)],
+      ['pit1', 'Pit: ' + teamName(1)],
+      ['verzaakt0', 'Verzaakt: ' + teamName(0)],
+      ['verzaakt1', 'Verzaakt: ' + teamName(1)]
+    ];
+    opts.forEach(function (o) {
+      var op = document.createElement('option');
+      op.value = o[0];
+      op.textContent = o[1];
+      specialEl.appendChild(op);
+    });
+    specialEl.value = keep;
+  }
+
+  function totals() {
+    var t = [0, 0];
+    state.rounds.forEach(function (r) {
+      var s = scoreRound(r).score;
+      t[0] += s[0];
+      t[1] += s[1];
+    });
+    return t;
+  }
+
+  function renderRounds() {
+    var body = $('rounds');
+    body.innerHTML = '';
+    state.rounds.forEach(function (r, idx) {
+      var res = scoreRound(r);
+      var tr = document.createElement('tr');
+
+      var n = document.createElement('td');
+      n.className = 'n';
+      n.textContent = String(idx + 1);
+      tr.appendChild(n);
+
+      [0, 1].forEach(function (i) {
+        var td = document.createElement('td');
+        td.textContent = String(res.score[i]);
+        if (res.label) {
+          var sm = document.createElement('small');
+          var isBad = res.label === 'nat' && res.nat === i;
+          var isFoul = res.label === 'verzaakt' && res.score[i] === 0;
+          if (res.label === 'pit' && res.score[i] > 0) sm.textContent = 'pit';
+          else if (isBad) sm.textContent = 'nat';
+          else if (isFoul) sm.textContent = 'verzaakt';
+          if (isBad || isFoul) sm.className = 'bad';
+          if (sm.textContent) td.appendChild(sm);
+        }
+        tr.appendChild(td);
+      });
+
+      var x = document.createElement('td');
+      x.className = 'x';
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.textContent = '✕';
+      del.setAttribute('aria-label', 'Verwijder ronde ' + (idx + 1));
+      del.addEventListener('click', function () {
+        if (confirm('Ronde ' + (idx + 1) + ' verwijderen?')) {
+          state.rounds.splice(idx, 1);
+          save();
+          render();
+        }
+      });
+      x.appendChild(del);
+      tr.appendChild(x);
+      body.appendChild(tr);
+    });
+
+    var t = totals();
+    $('total0').textContent = String(t[0]);
+    $('total1').textContent = String(t[1]);
+    $('foot0').textContent = String(t[0]);
+    $('foot1').textContent = String(t[1]);
+    $('empty').style.display = state.rounds.length ? 'none' : 'block';
+    undoBtn.disabled = state.rounds.length === 0;
+  }
+
+  function render() {
+    $('name0').value = state.names[0];
+    $('name1').value = state.names[1];
+    renderNames();
+    renderRounds();
+    updatePreview();
+  }
+
+  // ---- Formulier -----------------------------------------------------------
+  function intVal(el) {
+    var v = parseInt(el.value, 10);
+    return isNaN(v) ? null : v;
+  }
+
+  function currentInput() {
+    var checked = document.querySelector('input[name=player]:checked');
+    var a = intVal(pts[0]);
+    var b = intVal(pts[1]);
+    var ra = intVal(roem[0]) || 0;
+    var rb = intVal(roem[1]) || 0;
+    if (!checked || a === null || b === null) return null;
+    if (a < 0 || b < 0 || a > TOTAL || b > TOTAL || a + b !== TOTAL) return null;
+    if (ra < 0 || rb < 0) return null;
+    return {
+      player: Number(checked.value),
+      pts: [a, b],
+      roem: [ra, rb],
+      special: specialEl.value
+    };
+  }
+
+  function updatePreview() {
+    var r = currentInput();
+    saveBtn.disabled = !r;
+    if (!r) {
+      var a = intVal(pts[0]);
+      var b = intVal(pts[1]);
+      var msg = 'Kies wie speelde en vul de punten in (samen 162).';
+      if (a !== null && b !== null && a + b !== TOTAL) msg = 'De punten moeten samen 162 zijn.';
+      previewEl.textContent = msg;
+      return;
+    }
+    var res = scoreRound(r);
+    previewEl.innerHTML = '';
+    var line = document.createElement('div');
+    var s0 = document.createElement('strong');
+    s0.textContent = String(res.score[0]);
+    var s1 = document.createElement('strong');
+    s1.textContent = String(res.score[1]);
+    line.appendChild(document.createTextNode(teamName(0) + ' '));
+    line.appendChild(s0);
+    line.appendChild(document.createTextNode('  –  ' + teamName(1) + ' '));
+    line.appendChild(s1);
+    previewEl.appendChild(line);
+    if (res.label === 'nat') {
+      var w = document.createElement('div');
+      w.textContent = teamName(res.nat) + ' is nat.';
+      previewEl.appendChild(w);
+    }
+  }
+
+  // Punten van het ene team vullen automatisch het andere in (samen 162).
+  function linkPoints(i) {
+    return function () {
+      var v = intVal(pts[i]);
+      if (v === null) { pts[1 - i].value = ''; }
+      else if (v >= 0 && v <= TOTAL) { pts[1 - i].value = String(TOTAL - v); }
+      updatePreview();
+    };
+  }
+  pts[0].addEventListener('input', linkPoints(0));
+  pts[1].addEventListener('input', linkPoints(1));
+
+  [roem[0], roem[1], specialEl].forEach(function (el) {
+    el.addEventListener('input', updatePreview);
+    el.addEventListener('change', updatePreview);
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('input[name=player]'), function (el) {
+    el.addEventListener('change', updatePreview);
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll('.chips'), function (box) {
+    var team = Number(box.getAttribute('data-team'));
+    box.addEventListener('click', function (e) {
+      var btn = e.target.closest('button');
+      if (!btn) return;
+      var add = Number(btn.getAttribute('data-add'));
+      roem[team].value = add === 0 ? '0' : String((intVal(roem[team]) || 0) + add);
+      updatePreview();
+    });
+  });
+
+  saveBtn.addEventListener('click', function () {
+    var r = currentInput();
+    if (!r) return;
+    state.rounds.push(r);
+    save();
+    // formulier leegmaken
+    pts[0].value = '';
+    pts[1].value = '';
+    roem[0].value = '0';
+    roem[1].value = '0';
+    specialEl.value = 'none';
+    var checked = document.querySelector('input[name=player]:checked');
+    if (checked) checked.checked = false;
+    render();
+  });
+
+  undoBtn.addEventListener('click', function () {
+    if (!state.rounds.length) return;
+    state.rounds.pop();
+    save();
+    render();
+  });
+
+  $('newGame').addEventListener('click', function () {
+    if (!state.rounds.length || confirm('Nieuw spel starten? De huidige stand wordt gewist.')) {
+      state.rounds = [];
+      save();
+      render();
+    }
+  });
+
+  [0, 1].forEach(function (i) {
+    $('name' + i).addEventListener('input', function (e) {
+      state.names[i] = e.target.value;
+      save();
+      renderNames();
+      updatePreview();
+    });
+  });
+
+  // Voor testen in de console / automatische tests.
+  window.__klaverjas = { scoreRound: scoreRound };
+
+  render();
+})();
+</script>
+</body>
+</html>
