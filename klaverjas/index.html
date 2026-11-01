@@ -251,8 +251,8 @@
     </div>
 
     <div class="seg" role="radiogroup" aria-label="Soort spel">
-      <label><input type="radio" name="gtype" value="troef" checked><span>Troef (162)</span></label>
-      <label><input type="radio" name="gtype" value="sans"><span>Sans (130)</span></label>
+      <label><input type="radio" name="gtype" value="troef" checked><span>Troef</span></label>
+      <label><input type="radio" name="gtype" value="sans"><span>Sans</span></label>
     </div>
 
     <div class="bids" id="bids" role="group" aria-label="Bod">
@@ -427,26 +427,36 @@
     return { raw: raw, score: [paper(raw[0]), paper(raw[1])], label: label, nat: nat, made: made, pitTeam: pitTeam };
   }
 
-  // ---- Zuipjassen: wat moet er na de laatste ronde getrokken worden? -------------
-  // Geeft per team het aantal bakken en liters voor de LAATSTE ronde in `rounds`.
-  // Alles is alleen actief als de zuipjassen-editie aanstaat, en elke soort heeft een eigen tickbox.
+  // ---- Wat moet er na de laatste ronde getrokken worden? ---------------------------
+  // Geeft per team het aantal bakken, liters en halve liters voor de LAATSTE ronde in `rounds`.
+  // Pit-drinken geldt voor beide versies (lustrum is alleen een kleurinstelling); natbak en takbak
+  // horen bij de zuipjassen-editie en hebben elk een eigen tickbox.
   // Meldingen voor hetzelfde team uit dezelfde ronde stapelen (bijv. natbak + takbak = 2 bakken).
   var TAK_LENGTH = 4; // 1 tak = 4 handjes (rondes)
   function roundEvents(rounds, opts) {
-    var ev = [{ bak: 0, liter: 0 }, { bak: 0, liter: 0 }];
-    if (!opts || !opts.zuipjassen || !rounds.length) return ev;
+    var ev = [{ bak: 0, liter: 0, halve: 0 }, { bak: 0, liter: 0, halve: 0 }];
+    if (!opts || !rounds.length) return ev;
+    var zuip = !!opts.zuipjassen;
     var last = rounds[rounds.length - 1];
     var res = scoreRound(last);
+    var pitMade = last.special === 'pit';
+    var pitBidFailed = last.bid === 'pit' && !pitMade;
 
-    // Natbak: het team dat nat ging trekt een bak.
-    if (opts.natbak && res.nat !== null) ev[res.nat].bak++;
+    // Pit gehaald (de tegenpartij is pit gespeeld) -> tegenpartij trekt een liter.
+    //  - Gewoon jassen: alleen als pit ook geboden was.
+    //  - Zuipjassen: gehaald is genoeg (het bod maakt niet uit), mits 'Pitliter' aanstaat.
+    if (pitMade && (zuip ? opts.pitliter : last.bid === 'pit')) ev[1 - last.player].liter++;
 
-    // Pitliter: de spelende partij haalde alle slagen (pit), dus de tegenpartij trekt een liter.
-    if (opts.pitliter && last.special === 'pit') ev[1 - last.player].liter++;
+    // Pit geboden maar niet gehaald -> het biedende team trekt een halve liter
+    // (bij zuipjassen alleen als 'Pitliter' aanstaat).
+    if (pitBidFailed && (!zuip || opts.pitliter)) ev[last.player].halve++;
 
-    // Takbak: na elke 4 rondes (1 tak, los van andere takken) trekt het team met de minste punten
-    // op papier een bak. Bij gelijk aantal punten trekken beide teams een bak.
-    if (opts.takbak && rounds.length % TAK_LENGTH === 0) {
+    // Natbak (zuipjassen): het team dat nat ging trekt een bak.
+    if (zuip && opts.natbak && res.nat !== null) ev[res.nat].bak++;
+
+    // Takbak (zuipjassen): na elke 4 rondes (1 tak, los van andere takken) trekt het team met de
+    // minste punten op papier een bak. Bij gelijk aantal punten trekken beide teams een bak.
+    if (zuip && opts.takbak && rounds.length % TAK_LENGTH === 0) {
       var sum = [0, 0];
       rounds.slice(-TAK_LENGTH).forEach(function (r) {
         var s = scoreRound(r).score;
@@ -462,6 +472,7 @@
   function drinkText(e) {
     var parts = [];
     if (e.liter > 0) parts.push(e.liter === 1 ? 'een liter' : e.liter + ' liter');
+    if (e.halve > 0) parts.push(e.halve === 1 ? 'een halve liter' : e.halve + ' halve liters');
     if (e.bak > 0) parts.push(e.bak === 1 ? 'een bak' : e.bak + ' bakken');
     return parts.join(' en ');
   }
