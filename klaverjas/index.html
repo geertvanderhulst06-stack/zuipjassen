@@ -522,10 +522,10 @@
   // Uitzondering: bij een mislukt pit-bod vervalt de natbak (alleen halve liter, eventueel + takbak).
   var TAK_LENGTH = 4; // 1 tak = 4 handjes (rondes)
 
-  // Te slap bod voor pit: troef 80 of 90, sans 80.
+  // Te slap bod voor pit: troef 80 of 90, sans 70 of 80.
   function isWeakBid(r) {
     if (typeof r.bid !== 'number') return false;
-    return r.sans ? r.bid === 80 : (r.bid === 80 || r.bid === 90);
+    return r.sans ? (r.bid === 70 || r.bid === 80) : (r.bid === 80 || r.bid === 90);
   }
   function roundEvents(rounds, opts) {
     var ev = [{ bak: 0, liter: 0, halve: 0, homo: 0 }, { bak: 0, liter: 0, halve: 0, homo: 0 }];
@@ -544,7 +544,7 @@
     // Pit geboden maar niet gehaald: het biedende team trekt altijd een halve liter.
     if (pitBid && !pitMade) ev[last.player].halve++;
 
-    // Homoliter: pit gehaald met een te slap bod (troef 80 of 90, sans 80). Het biedende team trekt
+    // Homoliter: pit gehaald met een te slap bod (troef 80 of 90, sans 70 of 80). Het biedende team trekt
     // een liter. Geldt altijd (normaal jassen en zuipjassen), staat los van alle tickboxen en alle
     // andere regels, en komt er dus bovenop (bijv. op de takbak of de pitliter van de tegenpartij).
     if (pitMade && isWeakBid(last)) ev[last.player].homo++;
