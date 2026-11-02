@@ -76,6 +76,7 @@
   .team .tname { color: var(--text); font-weight: 700; text-align: center; border-bottom: 1px dashed var(--line); padding: 2px 0 4px; }
   .unit { font-size: 14px; color: var(--muted); }
   .scoreboard.drinks { margin-bottom: 0; }
+  .scoreboard.klop .total { font-size: 36px; }
   h2 { font-size: 16px; margin: 0 0 12px; }
   button {
     font: inherit;
@@ -305,8 +306,8 @@
 
     <div class="grid2">
       <div class="field">
-        <div class="flabel">Roem <span data-name="0"></span></div>
-        <div class="tally" id="tally0" role="img" aria-label="Roem: geen"></div>
+        <div class="flabel">Klopjes <span data-name="0"></span></div>
+        <div class="tally" id="tally0" role="img" aria-label="Klopjes: geen"></div>
         <div class="chips" data-team="0">
           <button type="button" data-add="20">+20</button>
           <button type="button" data-add="50">+50</button>
@@ -314,8 +315,8 @@
         </div>
       </div>
       <div class="field">
-        <div class="flabel">Roem <span data-name="1"></span></div>
-        <div class="tally" id="tally1" role="img" aria-label="Roem: geen"></div>
+        <div class="flabel">Klopjes <span data-name="1"></span></div>
+        <div class="tally" id="tally1" role="img" aria-label="Klopjes: geen"></div>
         <div class="chips" data-team="1">
           <button type="button" data-add="20">+20</button>
           <button type="button" data-add="50">+50</button>
@@ -346,12 +347,28 @@
       <button type="button" id="undo" disabled>Laatste ronde ongedaan maken</button>
     </div>
     <p class="note">
-      Regels: troef = 162 punten per ronde, sans = 130, plus roem. Op papier tel je in tientallen en een rest
-      van 7 of meer rond je naar boven af (16 &rarr; 1, 27 &rarr; 3, 160 &rarr; 16).<br><br>
-      Gemaakt voor Geert van der Hulst<br><br>
+      Regels: troef = 162 punten per ronde, sans = 130, plus klopjes. Op papier tel je in tientallen: de spelende
+      partij rondt vanaf een rest van 7 omhoog af (26 &rarr; 2, 27 &rarr; 3), de andere partij al vanaf 6
+      (26 &rarr; 3, 27 &rarr; 3).<br><br>
+      Gemaakt door Geert van der Hulst<br><br>
       Voeg toe op je homescreen op Apple!<br>
       Open met Safari &rarr; drie puntjes &rarr; deel &rarr; zet op beginscherm
     </p>
+  </section>
+
+  <!-- Altijd zichtbaar: verdeling van de klopjes (roempunten) over de twee teams -->
+  <section class="card" id="klopjesCard" aria-labelledby="h-klop">
+    <h2 id="h-klop">Klopjes verdeling</h2>
+    <div class="scoreboard drinks klop">
+      <div class="team">
+        <div class="tname" data-name="0"></div>
+        <div class="total" id="klop0">0,0%</div>
+      </div>
+      <div class="team">
+        <div class="tname" data-name="1"></div>
+        <div class="total" id="klop1">0,0%</div>
+      </div>
+    </div>
   </section>
 
   <!-- Alleen zichtbaar als de zuipjassen-editie aanstaat -->
@@ -403,14 +420,17 @@
   var TOTAL_TROEF = 162;
   var TOTAL_SANS = 130;
   var PIT_BONUS = 100;
-  var ROUND_UP_FROM = 7; // rest van 7 of meer: naar boven afronden
+  var ROUND_UP_FROM = 7;       // spelende partij: een rest van 7 of meer rond je naar boven af
+  var ROUND_UP_FROM_OTHER = 6; // niet-spelende partij: al vanaf een rest van 6
   var KEY = 'klaverjas-kladblok-v1';
 
   // ---- Rekenen (los van de UI) -------------------------------------------
-  // Afronden naar tientallen op papier: 160 -> 16, 16 -> 1, 27 -> 3.
-  function paper(x) {
+  // Afronden naar tientallen op papier: 160 -> 16. De spelende partij rondt af vanaf een rest van 7
+  // (26 -> 2, 27 -> 3), de niet-spelende partij al vanaf 6 (26 -> 3, 27 -> 3). Zo blijft het totaal 16.
+  function paper(x, roundUpFrom) {
+    var from = roundUpFrom || ROUND_UP_FROM;
     var tens = Math.floor(x / 10);
-    return (x % 10) >= ROUND_UP_FROM ? tens + 1 : tens;
+    return (x % 10) >= from ? tens + 1 : tens;
   }
 
   function gameTotal(sans) { return sans ? TOTAL_SANS : TOTAL_TROEF; }
@@ -487,7 +507,11 @@
       raw[1 - p] = total + roem[0] + roem[1];
       label = 'nat';
     }
-    return { raw: raw, score: [paper(raw[0]), paper(raw[1])], label: label, nat: nat, made: made, pitTeam: pitTeam };
+    var score = [
+      paper(raw[0], p === 0 ? ROUND_UP_FROM : ROUND_UP_FROM_OTHER),
+      paper(raw[1], p === 1 ? ROUND_UP_FROM : ROUND_UP_FROM_OTHER)
+    ];
+    return { raw: raw, score: score, label: label, nat: nat, made: made, pitTeam: pitTeam };
   }
 
   // ---- Wat moet er na de laatste ronde getrokken worden? ---------------------------
@@ -552,8 +576,8 @@
   }
 
   // Wat is er in het hele potje gedronken? Per team, in ml per persoon (iedereen in het team
-  // trekt wat de melding zegt). In het echt: liter = 900 ml (3 biertjes), halve liter = 500 ml, bak = 300 ml.
-  var ML = { liter: 900, halve: 500, bak: 300 };
+  // trekt wat de melding zegt). In het echt: liter = 990 ml (3 biertjes), halve liter = 500 ml, bak = 330 ml.
+  var ML = { liter: 990, halve: 500, bak: 330 };
   function drinkMl(rounds, o) {
     var ml = [0, 0];
     for (var i = 1; i <= rounds.length; i++) {
@@ -564,7 +588,33 @@
     }
     return ml;
   }
-  function litersText(ml) { return (ml / 1000).toFixed(1).replace('.', ','); }
+  // Totaal volume in liters, afgerond op 2 decimalen (komma): 1320 ml -> "1,32".
+  function litersText(ml) { return (Math.round(ml / 10) / 100).toFixed(2).replace('.', ','); }
+
+  // ---- Klopjes verdeling ---------------------------------------------------
+  // Aandeel van alle roempunten (klopjes: I = 20, V = 50) per team. Bij nat gaat alle roem van die
+  // ronde naar de tegenpartij (de doorgehaalde klopjes van het nat gegane team worden overgedragen).
+  function klopjesTotals(rounds) {
+    var t = [0, 0];
+    rounds.forEach(function (r) {
+      var res = scoreRound(r);
+      if (res.nat === null) {
+        t[0] += r.roem[0];
+        t[1] += r.roem[1];
+      } else {
+        t[1 - res.nat] += r.roem[0] + r.roem[1];
+      }
+    });
+    return t;
+  }
+  // Percentages afgerond op 1 decimaal; de twee samen zijn altijd 100,0. Zonder klopjes: 0,0 en 0,0.
+  function klopjesPercent(t) {
+    var total = t[0] + t[1];
+    if (!total) return [0, 0];
+    var a = Math.round(t[0] / total * 1000); // tienden van procenten
+    return [a / 10, (1000 - a) / 10];
+  }
+  function percentText(p) { return p.toFixed(1).replace('.', ',') + '%'; }
 
   // ---- Opslag --------------------------------------------------------------
   function load() {
@@ -599,7 +649,7 @@
     [0, 1].forEach(function (i) {
       var el = $('tally' + i);
       el.textContent = tallyText(i);
-      el.setAttribute('aria-label', 'Roem ' + teamName(i) + ': ' + (roemVal(i) || 'geen'));
+      el.setAttribute('aria-label', 'Klopjes ' + teamName(i) + ': ' + (roemVal(i) || 'geen'));
     });
   }
   var bidBtns = Array.prototype.slice.call(document.querySelectorAll('#bids button'));
@@ -721,9 +771,16 @@
     $('name1').value = state.names[1];
     renderNames();
     renderRounds();
+    renderKlopjes();
     syncForm();
     updateForm();
     applyOptions();
+  }
+
+  function renderKlopjes() {
+    var pct = klopjesPercent(klopjesTotals(state.rounds));
+    $('klop0').textContent = percentText(pct[0]);
+    $('klop1').textContent = percentText(pct[1]);
   }
 
   // ---- Bevestigingsvenster (confirm() werkt niet overal) ------------------
@@ -1019,7 +1076,8 @@
   });
 
   // Voor testen in de console / automatische tests.
-  window.__klaverjas = { scoreRound: scoreRound, paper: paper, roundEvents: roundEvents, eventMessages: eventMessages, drinkMl: drinkMl, litersText: litersText, tallyFromTotal: tallyFromTotal, tallyString: tallyString };
+  window.__klaverjas = { scoreRound: scoreRound, paper: paper, roundEvents: roundEvents, eventMessages: eventMessages, drinkMl: drinkMl, litersText: litersText, tallyFromTotal: tallyFromTotal, tallyString: tallyString,
+    klopjesTotals: klopjesTotals, klopjesPercent: klopjesPercent, percentText: percentText };
 
   render();
 })();
