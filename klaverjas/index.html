@@ -521,8 +521,14 @@
   // Meldingen voor hetzelfde team uit dezelfde ronde stapelen (bijv. natbak + takbak = 2 bakken).
   // Uitzondering: bij een mislukt pit-bod vervalt de natbak (alleen halve liter, eventueel + takbak).
   var TAK_LENGTH = 4; // 1 tak = 4 handjes (rondes)
+
+  // Te slap bod voor pit: troef 80 of 90, sans 80.
+  function isWeakBid(r) {
+    if (typeof r.bid !== 'number') return false;
+    return r.sans ? r.bid === 80 : (r.bid === 80 || r.bid === 90);
+  }
   function roundEvents(rounds, opts) {
-    var ev = [{ bak: 0, liter: 0, halve: 0 }, { bak: 0, liter: 0, halve: 0 }];
+    var ev = [{ bak: 0, liter: 0, halve: 0, homo: 0 }, { bak: 0, liter: 0, halve: 0, homo: 0 }];
     if (!opts || !rounds.length) return ev;
     var zuip = !!opts.zuipjassen;
     var last = rounds[rounds.length - 1];
@@ -537,6 +543,11 @@
 
     // Pit geboden maar niet gehaald: het biedende team trekt altijd een halve liter.
     if (pitBid && !pitMade) ev[last.player].halve++;
+
+    // Homoliter: pit gehaald met een te slap bod (troef 80 of 90, sans 80). Het biedende team trekt
+    // een liter. Geldt altijd (normaal jassen en zuipjassen), staat los van alle tickboxen en alle
+    // andere regels, en komt er dus bovenop (bijv. op de takbak of de pitliter van de tegenpartij).
+    if (pitMade && isWeakBid(last)) ev[last.player].homo++;
 
     // Natbak (zuipjassen): het team dat nat ging trekt een bak. Bij een mislukt pit-bod vervalt de
     // natbak: dan geldt alleen de halve liter hierboven (die stapelt wel met de takbak hieronder).
@@ -559,6 +570,7 @@
 
   function drinkText(e) {
     var parts = [];
+    if (e.homo > 0) parts.push(e.homo === 1 ? 'een homoliter' : e.homo + ' homoliters');
     if (e.liter > 0) parts.push(e.liter === 1 ? 'een liter' : e.liter + ' liter');
     if (e.halve > 0) parts.push(e.halve === 1 ? 'een halve liter' : e.halve + ' halve liters');
     if (e.bak > 0) parts.push(e.bak === 1 ? 'een bak' : e.bak + ' bakken');
@@ -577,13 +589,13 @@
 
   // Wat is er in het hele potje gedronken? Per team, in ml per persoon (iedereen in het team
   // trekt wat de melding zegt). In het echt: liter = 990 ml (3 biertjes), halve liter = 500 ml, bak = 330 ml.
-  var ML = { liter: 990, halve: 500, bak: 330 };
+  var ML = { liter: 990, halve: 500, bak: 330, homo: 990 }; // een homoliter is gewoon een liter
   function drinkMl(rounds, o) {
     var ml = [0, 0];
     for (var i = 1; i <= rounds.length; i++) {
       var ev = roundEvents(rounds.slice(0, i), o);
       for (var t = 0; t < 2; t++) {
-        ml[t] += ev[t].liter * ML.liter + ev[t].halve * ML.halve + ev[t].bak * ML.bak;
+        ml[t] += ev[t].liter * ML.liter + ev[t].halve * ML.halve + ev[t].bak * ML.bak + ev[t].homo * ML.homo;
       }
     }
     return ml;
